@@ -99,6 +99,30 @@ stl_write_binary_block(stl_file *stl, FILE *fp)
     }
 }
 
+void
+stl_translate_rel(stl_file *stl, float x, float y, float z)
+{
+  int i;
+  int j;
+  
+  for(i = 0; i < stl->stats.number_of_facets; i++)
+    {
+      for(j = 0; j < 3; j++)
+	{
+	  stl->facet_start[i].vertex[j].x += x;
+	  stl->facet_start[i].vertex[j].y += y;
+	  stl->facet_start[i].vertex[j].z += z;
+	}
+    }
+  stl->stats.max.x += x;
+  stl->stats.max.y += y;
+  stl->stats.max.z += z;
+  stl->stats.min.x += x;
+  stl->stats.min.y += y;
+  stl->stats.min.z += z;
+}
+
+
 
 void add_stl(char *filename, int count, int width, int height, img_list **shapes){
     stl_file *s=(stl_file *)malloc(sizeof(stl_file));
@@ -165,9 +189,10 @@ int main(int argc, char** argv){
     struct arg_int  *as  = arg_int0("s","spacing",NULL,              "spacing between parts in mm (default is 1)");
     struct arg_int  *ar  = arg_int0("r","rotstep",NULL,              "rotation step when searching (default 10 degrees)");
     struct arg_int  *ap  = arg_int0("p","posstep",NULL,              "positional step when searching (default 5mm)");
-    struct arg_str  *aindir = arg_str0("i","inputdir","INPUTDIR",  "input directory (default \"test\")");
+    struct arg_str  *aindir = arg_str0("i","inputdir",NULL,  "input directory (default \"test\")");
+    struct arg_str  *ainfile = arg_strn("f","inputfile",NULL,0,argc+2,  "input file (any number allowed)");
     struct arg_end  *end      = arg_end(20);
-    void* argtable[] = {aw,ah,as,ar,ap,aindir,end};
+    void* argtable[] = {aw,ah,as,ar,ap,aindir,ainfile,end};
     
     int nerrors;
     nerrors = arg_parse(argc,argv,argtable);
@@ -206,30 +231,37 @@ int main(int argc, char** argv){
     img_list *shapes=NULL;
     img_list *curplate=NULL;
     int platecount=0;
-    DIR *dir;
-    struct dirent *ent;
-    if ((dir = opendir (indir)) != NULL) {
-        while ((ent = readdir (dir)) != NULL) {
-            int i;
-            char d[350];
-            strcpy(d,ent->d_name);
-            for(i = 0; d[i]; i++)
-                d[i] = tolower(d[i]);
-            if(strstr(d,".stl")!=0){
-                char f[350];
-                f[0]=0;
-                strcat(f,indir);
-                strcat(f+strlen(f),"/");
-                strcat(f+strlen(f),ent->d_name);
-                
-                add_stl(f, 1, w, h, &shapes);
-            }
-                //printf ("%s\n", ent->d_name);
+    if(ainfile->count){
+        int i;
+        for(i=0;i<ainfile->count;i++){
+            add_stl((char *)(ainfile->sval[i]),1, w, h, &shapes);
         }
-        closedir (dir);
-    } else {
-        printf("Input directory not found\n");
-        return EXIT_FAILURE;
+    }else{
+        DIR *dir;
+        struct dirent *ent;
+        if ((dir = opendir (indir)) != NULL) {
+            while ((ent = readdir (dir)) != NULL) {
+                int i;
+                char d[350];
+                strcpy(d,ent->d_name);
+                for(i = 0; d[i]; i++)
+                    d[i] = tolower(d[i]);
+                if(strstr(d,".stl")!=0){
+                    char f[350];
+                    f[0]=0;
+                    strcat(f,indir);
+                    strcat(f+strlen(f),"/");
+                    strcat(f+strlen(f),ent->d_name);
+                    
+                    add_stl(f, 1, w, h, &shapes);
+                }
+                    //printf ("%s\n", ent->d_name);
+            }
+            closedir (dir);
+        } else {
+            printf("Input directory not found\n");
+            return EXIT_FAILURE;
+        }
     }
     
     
@@ -342,7 +374,7 @@ int main(int argc, char** argv){
                 stl_file *s=elt->stl;
                 stl_translate(s,0-(s->stats.max.x-s->stats.min.x)/2.0,0-(s->stats.max.y-s->stats.min.y)/2.0,0);
                 stl_rotate_z(s,-elt->rotangle);
-                stl_translate(s,elt->x-(s->stats.max.x-s->stats.min.x)/2.0,elt->y-(s->stats.max.y-s->stats.min.y)/2.0,0 );
+                stl_translate_rel(s,elt->x,elt->y,0 );
                 stl_write_binary_block(s,fp);
             }
         }
