@@ -307,8 +307,8 @@ int main(int argc, char** argv){
             cvDilate(elt->image,itmp,NULL,spacing);
             for(rotangle=0;rotangle<360;rotangle+=rotstep){
                 cvWarpAffine(itmp,rpatch,cv2DRotationMatrix(center, rotangle, 1.0, rot),CV_INTER_LINEAR+CV_WARP_FILL_OUTLIERS, cvScalarAll(0) );
-                for(ypos=5;ypos<minypos;ypos+=posstep){
-                    for(xpos=5;xpos<minxpos;xpos+=posstep){
+                for(ypos=1;ypos<minypos;ypos+=posstep){
+                    for(xpos=1;xpos<minxpos;xpos+=posstep){
                         cvSetImageROI(rpatch, cvRect(w-xpos,h-ypos,w,h));
                         cvAnd(rpatch, img, testfit, NULL);
                         if(!cvCountNonZero(testfit)){
