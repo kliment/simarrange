@@ -35,9 +35,9 @@ Convert all files from the directory "input" into plates of size 200x150mm
 
 Convert all files from the directory "input" into plates of size 200x200mm with 10mm spacing between parts
 
-./sa -x60 -y60 -s2 -i blah -p 2
+./sa -x60 -y60 -s3 -i blah -p 2
 
-Convert all files from the directory "blah" into plates of size 60x60mm with 10mm spacing between parts and 2mm search grid
+Convert all files from the directory "blah" into plates of size 60x60mm with 3mm spacing between parts and 2mm search grid
 
 Compiling
 
