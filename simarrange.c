@@ -236,7 +236,8 @@ int main(int argc, char** argv){
         for(i=0;i<ainfile->count;i++){
             add_stl((char *)(ainfile->sval[i]),1, w, h, &shapes);
         }
-    }else{
+    }
+    if (aindir->count || !ainfile->count){
         DIR *dir;
         struct dirent *ent;
         if ((dir = opendir (indir)) != NULL) {

@@ -25,7 +25,7 @@ positional granularity of search space in mm, default 5 (reduce for tighter, slo
 -i
 input directory, default "test"
 -f
-input file, overrides -i, can be used multiple times
+input file, can be used multiple times, can be combined with -i
 
 
 Examples
@@ -45,6 +45,10 @@ Convert all files from the directory "blah" into plates of size 60x60mm with 3mm
 ./sa -f file1.stl -f file1.stl -f file2.stl -f file2.stl -f file2.stl -f file2.stl
 
 Place two copies of file1.stl and four copies of file2.stl into plates of size 200x200mm
+
+./sa -i input -f file1.stl -f file1.stl -f file2.stl -f file2.stl -f file2.stl -f file2.stl
+
+Place all STL files in the directory "input" as well as two copies of file1.stl and four copies of file2.stl into plates of size 200x200mm
 
 
 Compiling
