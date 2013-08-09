@@ -132,6 +132,9 @@ void add_stl(char *filename, int count, int width, int height, img_list **shapes
     s->stats.facets_w_1_bad_edge = (s->stats.connected_facets_2_edge - s->stats.connected_facets_3_edge);
     s->stats.facets_w_2_bad_edge = (s->stats.connected_facets_1_edge - s->stats.connected_facets_2_edge);
     s->stats.facets_w_3_bad_edge = (s->stats.number_of_facets - s->stats.connected_facets_1_edge);
+    stl_fix_normal_directions(s);
+    stl_fix_normal_values(s);
+    stl_fill_holes(s);
     height=(int)(2*height);
     width=(int)(2*width);
     stl_translate(s, ((float)width/2)-(s->stats.max.x-s->stats.min.x)/2.0, ((float)height/2)-(s->stats.max.y-s->stats.min.y)/2.0, 0.0);
@@ -309,7 +312,7 @@ int main(int argc, char** argv){
                         cvSetImageROI(rpatch, cvRect(w-xpos,h-ypos,w,h));
                         cvAnd(rpatch, img, testfit, NULL);
                         if(!cvCountNonZero(testfit)){
-                            int prec=cvCountNonZero(testfit);
+                            int prec=cvCountNonZero(img);
                             cvAdd(rpatch, img, testfit, NULL);
                             if(prec!=cvCountNonZero(testfit)){
                                 minxpos=xpos;
