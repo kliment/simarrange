@@ -384,6 +384,44 @@ int main(int argc, char** argv){
         }
         
         fclose(fp);
+        stl_file stl_in;
+        int last_edges_fixed = 0;
+        int iterations = 2;
+        stl_open(&stl_in, fn);
+        stl_check_facets_exact(&stl_in);
+        stl_in.stats.facets_w_1_bad_edge = 
+            (stl_in.stats.connected_facets_2_edge -
+            stl_in.stats.connected_facets_3_edge);
+        stl_in.stats.facets_w_2_bad_edge = 
+            (stl_in.stats.connected_facets_1_edge -
+            stl_in.stats.connected_facets_2_edge);
+        stl_in.stats.facets_w_3_bad_edge = 
+            (stl_in.stats.number_of_facets -
+            stl_in.stats.connected_facets_1_edge);
+        float tolerance = stl_in.stats.shortest_edge;
+        float increment = stl_in.stats.bounding_diameter / 10000.0;
+        if(stl_in.stats.connected_facets_3_edge < stl_in.stats.number_of_facets)
+        {
+          for(i = 0; i < iterations; i++)
+            {
+              if(stl_in.stats.connected_facets_3_edge < 
+             stl_in.stats.number_of_facets)
+            {
+              stl_check_facets_nearby(&stl_in, tolerance);
+              last_edges_fixed = stl_in.stats.edges_fixed;
+              tolerance += increment;
+            }
+          }
+          stl_remove_unconnected_facets(&stl_in);
+          stl_fill_holes(&stl_in);
+        }
+        stl_fix_normal_directions(&stl_in);
+        stl_fix_normal_values(&stl_in);
+        stl_verify_neighbors(&stl_in);
+        stl_generate_shared_vertices(&stl_in);
+        stl_write_binary(&stl_in, fn,fn);
+        stl_close(&stl_in);
+            
         plate+=1;
     
         platecount=0;
