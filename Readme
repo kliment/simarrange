@@ -1,0 +1,56 @@
+General
+
+Simarrange is a program that simulates collisions between STL meshes in 2D in order to generate tightly packed sets of parts.
+It takes a directory of STL files as input and outputs STL files with combined plates of parts.
+The parts are assumed to be in the correct printable orientation already.
+
+Usage
+
+./sa
+
+This will convert the STLs in the directory "test" into plates using the default options, and emit these plates and thumbnails of them into the current directory.
+
+The program understands the following options:
+
+-x 
+x dimension of build plate in mm, default 200, must be a positive integer
+-y 
+y dimension of build plate in mm, default 200, must be a positive integer
+-s
+Minimal spacing between parts, in mm, default 1, must be a positive integer
+-r
+rotational granularity of search space in degrees, default 10 (reduce for tighter, slower packing)
+-p
+positional granularity of search space in mm, default 5 (reduce for tighter, slower packing)
+-i
+input directory, default "test"
+
+Examples
+
+./sa -x 200 -y 150 -i input
+
+Convert all files from the directory "input" into plates of size 200x150mm
+
+./sa -s 10 -i input
+
+Convert all files from the directory "input" into plates of size 200x200mm with 10mm spacing between parts
+
+./sa -x60 -y60 -s2 -i blah -p 2
+
+Convert all files from the directory "blah" into plates of size 200x200mm with 10mm spacing between parts and 2mm search grid
+
+Compiling
+
+simarrange depends on the following libraries:
+
+admesh (included in source)
+utlist (included in source)
+argtable2
+opencv (libcv, libcxcore, libhighgui)
+
+You can install the dependencies in a debian/ubuntu system with the following command:
+
+sudo apt-get install libhighgui-dev libcv-dev libargtable2-dev
+
+A build script called build.sh is included in the package. Run it to compile the program.
+
