@@ -186,6 +186,8 @@ int main(int argc, char** argv){
     int posstep=5;
     int c;
     char defdir[]="test";
+    char outdir[512];
+    outdir[0]=0;
     char *indir=NULL;
     struct arg_int  *aw  = arg_int0("x","width",NULL,              "plate width in mm (default is 200)");
     struct arg_int  *ah  = arg_int0("y","height",NULL,              "plate height in mm (default is 200)");
@@ -193,9 +195,10 @@ int main(int argc, char** argv){
     struct arg_int  *ar  = arg_int0("r","rotstep",NULL,              "rotation step when searching (default 10 degrees)");
     struct arg_int  *ap  = arg_int0("p","posstep",NULL,              "positional step when searching (default 5mm)");
     struct arg_str  *aindir = arg_str0("i","inputdir",NULL,  "input directory (default \"test\")");
+    struct arg_str  *aodir = arg_str0("o","outputdir",NULL,  "output directory (default .)");
     struct arg_str  *ainfile = arg_strn("f","inputfile",NULL,0,argc+2,  "input file (any number allowed)");
     struct arg_end  *end      = arg_end(20);
-    void* argtable[] = {aw,ah,as,ar,ap,aindir,ainfile,end};
+    void* argtable[] = {aw,ah,as,ar,ap,aindir,aodir,ainfile,end};
     
     int nerrors;
     nerrors = arg_parse(argc,argv,argtable);
@@ -350,14 +353,29 @@ int main(int argc, char** argv){
             printf("The files skipped in the last stage do not fit on plate in any tested orientation! They might be too large for the print area.\n");
             return EXIT_FAILURE;
         }
-        char fn[20];
+        char fn[512];
+        
         sprintf(fn,"plate%02d.png",plate);
+        outdir[0]=0;
+        if(aodir->count){
+            mkdir(aodir->sval[0],0777);
+            strcpy(outdir,aodir->sval[0]);
+            strcat(outdir,"/");
+        }
+        strcat(outdir,fn);
         cvFlip(img,NULL,0);
-        cvSaveImage(fn,img,0);
+        cvSaveImage(outdir,img,0);
         sprintf(fn,"plate%02d.stl",plate);
+        outdir[0]=0;
+        if(aodir->count){
+            mkdir(aodir->sval[0],0777);
+            strcpy(outdir,aodir->sval[0]);
+            strcat(outdir,"/");
+        }
+        strcat(outdir,fn);
         FILE *fp;
         int i;
-        fp = fopen(fn, "w");
+        fp = fopen(outdir, "w");
         if(fp == NULL){
           printf("Could not open output file %s\n",fn);
           return EXIT_FAILURE;

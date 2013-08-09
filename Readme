@@ -24,15 +24,17 @@ rotational granularity of search space in degrees, default 10 (reduce for tighte
 positional granularity of search space in mm, default 5 (reduce for tighter, slower packing)
 -i
 input directory, default "test"
+-o
+output directory, default "."
 -f
 input file, can be used multiple times, can be combined with -i
 
 
 Examples
 
-./sa -x 200 -y 150 -i input
+./sa -x 200 -y 150 -i input -o output
 
-Convert all files from the directory "input" into plates of size 200x150mm
+Convert all files from the directory "input" into plates of size 200x150mm and save to directory "output", creating it if necessary
 
 ./sa -s 10 -i input
 
