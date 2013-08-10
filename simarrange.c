@@ -194,11 +194,12 @@ int main(int argc, char** argv){
     struct arg_int  *as  = arg_int0("s","spacing",NULL,              "spacing between parts in mm (default is 1)");
     struct arg_int  *ar  = arg_int0("r","rotstep",NULL,              "rotation step when searching (default 10 degrees)");
     struct arg_int  *ap  = arg_int0("p","posstep",NULL,              "positional step when searching (default 5mm)");
+    struct arg_lit  *ac  = arg_lit0("c","circle",              "circular print area with diameter given by -x");
     struct arg_str  *aindir = arg_str0("i","inputdir",NULL,  "input directory (default \"test\")");
     struct arg_str  *aodir = arg_str0("o","outputdir",NULL,  "output directory (default .)");
     struct arg_str  *ainfile = arg_strn("f","inputfile",NULL,0,argc+2,  "input file (any number allowed)");
     struct arg_end  *end      = arg_end(20);
-    void* argtable[] = {aw,ah,as,ar,ap,aindir,aodir,ainfile,end};
+    void* argtable[] = {aw,ah,as,ar,ap,ac,aindir,aodir,ainfile,end};
     
     int nerrors;
     nerrors = arg_parse(argc,argv,argtable);
@@ -217,6 +218,9 @@ int main(int argc, char** argv){
     }
     if(ah->count){
         h=ah->ival[0];
+    }
+    if(ac->count){
+        h=w;
     }
     if(as->count){
         spacing=as->ival[0];
@@ -297,6 +301,10 @@ int main(int argc, char** argv){
         cvLine(img, cvPoint(w-1,0), cvPoint(w-1,h-1), cvScalarAll(127), 1, 8, 0);
         cvLine(img, cvPoint(w-1,h-1), cvPoint(0,h-1), cvScalarAll(127), 1, 8, 0);
         cvLine(img, cvPoint(0,h-1), cvPoint(0,0), cvScalarAll(127), 1, 8, 0);
+        if(ac->count){
+            cvRectangle(img, cvPoint(0,0), cvPoint(w-1,h-1), cvScalarAll(127), CV_FILLED, 8, 0);
+            cvCircle(img, cvPoint(w/2,h/2), (w/2)-1, cvScalarAll(0), CV_FILLED, 8, 0);
+        }
         cvZero(rpatch);
         cvZero(testfit);
         cvZero(itmp);

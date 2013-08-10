@@ -16,6 +16,8 @@ The program understands the following options:
 x dimension of build plate in mm, default 200, must be a positive integer
 -y 
 y dimension of build plate in mm, default 200, must be a positive integer
+-c 
+build plate is circular, with diameter given by -x
 -s
 Minimal spacing between parts, in mm, default 1, must be a positive integer
 -r
@@ -35,6 +37,10 @@ Examples
 ./sa -x 200 -y 150 -i input -o output
 
 Convert all files from the directory "input" into plates of size 200x150mm and save to directory "output", creating it if necessary
+
+./sa -x 179 -c -i input
+
+Convert all files from the directory "input" into circular plates of 170mm diameter and save to directory "output", creating it if necessary
 
 ./sa -s 10 -i input
 
