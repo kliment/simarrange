@@ -12,23 +12,23 @@ This will convert the STLs in the directory "test" into plates using the default
 
 The program understands the following options:
 
--x 
+-x --width
 x dimension of build plate in mm, default 200, must be a positive integer
--y 
+-y --height
 y dimension of build plate in mm, default 200, must be a positive integer
--c 
+-c --circle
 build plate is circular, with diameter given by -x
--s
+-s --spacing
 Minimal spacing between parts, in mm, default 1, must be a positive integer
--r
+-r --rotstep
 rotational granularity of search space in degrees, default 10 (reduce for tighter, slower packing)
--p
+-p --posstep
 positional granularity of search space in mm, default 5 (reduce for tighter, slower packing)
--i
+-i --inputdir
 input directory, default "test"
--o
+-o --outputdir
 output directory, default "."
--f
+-f --inputfile
 input file, can be used multiple times, can be combined with -i
 
 
