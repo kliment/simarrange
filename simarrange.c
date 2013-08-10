@@ -17,6 +17,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 #include <admesh/stl.h>
 #include <stdio.h>
+#include <sys/stat.h>
 #include <opencv/cv.h>
 #include <opencv/highgui.h>
 #include "utlist.h"
@@ -132,9 +133,6 @@ void add_stl(char *filename, int count, int width, int height, img_list **shapes
     s->stats.facets_w_1_bad_edge = (s->stats.connected_facets_2_edge - s->stats.connected_facets_3_edge);
     s->stats.facets_w_2_bad_edge = (s->stats.connected_facets_1_edge - s->stats.connected_facets_2_edge);
     s->stats.facets_w_3_bad_edge = (s->stats.number_of_facets - s->stats.connected_facets_1_edge);
-    stl_fix_normal_directions(s);
-    stl_fix_normal_values(s);
-    stl_fill_holes(s);
     height=(int)(2*height);
     width=(int)(2*width);
     stl_translate(s, ((float)width/2)-(s->stats.max.x-s->stats.min.x)/2.0, ((float)height/2)-(s->stats.max.y-s->stats.min.y)/2.0, 0.0);
@@ -195,11 +193,10 @@ int main(int argc, char** argv){
     struct arg_int  *ar  = arg_int0("r","rotstep",NULL,              "rotation step when searching (default 10 degrees)");
     struct arg_int  *ap  = arg_int0("p","posstep",NULL,              "positional step when searching (default 5mm)");
     struct arg_lit  *ac  = arg_lit0("c","circle",              "circular print area with diameter given by -x");
-    struct arg_str  *aindir = arg_str0("i","inputdir",NULL,  "input directory (default \"test\")");
     struct arg_str  *aodir = arg_str0("o","outputdir",NULL,  "output directory (default .)");
-    struct arg_str  *ainfile = arg_strn("f","inputfile",NULL,0,argc+2,  "input file (any number allowed)");
+    struct arg_file  *ainfile = arg_filen(NULL,NULL,NULL,1,argc+2,  "input file or dir (any number allowed)");
     struct arg_end  *end      = arg_end(20);
-    void* argtable[] = {aw,ah,as,ar,ap,ac,aindir,aodir,ainfile,end};
+    void* argtable[] = {aw,ah,as,ar,ap,ac,aodir,ainfile,end};
     
     int nerrors;
     nerrors = arg_parse(argc,argv,argtable);
@@ -210,9 +207,7 @@ int main(int argc, char** argv){
         return EXIT_FAILURE;
         }
     
-    if(aindir->count){
-        indir=(char *)(aindir->sval[0]);
-    }
+    
     if(aw->count){
         w=aw->ival[0];
     }
@@ -241,40 +236,48 @@ int main(int argc, char** argv){
     img_list *shapes=NULL;
     img_list *curplate=NULL;
     int platecount=0;
+    struct stat filestat;
     if(ainfile->count){
-        int i;
-        for(i=0;i<ainfile->count;i++){
-            add_stl((char *)(ainfile->sval[i]),1, w, h, &shapes);
-        }
-    }
-    if (aindir->count || !ainfile->count){
-        DIR *dir;
-        struct dirent *ent;
-        if ((dir = opendir (indir)) != NULL) {
-            while ((ent = readdir (dir)) != NULL) {
-                int i;
-                char d[350];
-                strcpy(d,ent->d_name);
-                for(i = 0; d[i]; i++)
-                    d[i] = tolower(d[i]);
-                if(strstr(d,".stl")!=0){
-                    char f[350];
-                    f[0]=0;
-                    strcat(f,indir);
-                    strcat(f+strlen(f),"/");
-                    strcat(f+strlen(f),ent->d_name);
-                    
-                    add_stl(f, 1, w, h, &shapes);
+        int ifile;
+        for(ifile=0;ifile<ainfile->count;ifile++){
+            if( stat(ainfile->filename[ifile],&filestat) == 0 ){
+                if( filestat.st_mode & S_IFREG )
+                    add_stl((char *)(ainfile->filename[ifile]),1, w, h, &shapes);
+                if( filestat.st_mode & S_IFDIR ){
+                    indir=(char *)(ainfile->filename[ifile]);
+                    DIR *dir;
+                    struct dirent *ent;
+                    if ((dir = opendir (indir)) != NULL) {
+                        while ((ent = readdir (dir)) != NULL) {
+                            int i;
+                            char d[350];
+                            strcpy(d,ent->d_name);
+                            for(i = 0; d[i]; i++)
+                                d[i] = tolower(d[i]);
+                            if(strstr(d,".stl")!=0){
+                                char f[350];
+                                f[0]=0;
+                                strcat(f,indir);
+                                strcat(f+strlen(f),"/");
+                                strcat(f+strlen(f),ent->d_name);
+                                
+                                add_stl(f, 1, w, h, &shapes);
+                            }
+                                //printf ("%s\n", ent->d_name);
+                        }
+                        closedir (dir);
+                    } else {
+                        printf("Input directory not found %s\n",indir);
+                        return EXIT_FAILURE;
+                    }        
                 }
-                    //printf ("%s\n", ent->d_name);
+            }else{
+                printf("Could not access %s\n",ainfile->filename[ifile]);
+                return EXIT_FAILURE;
             }
-            closedir (dir);
-        } else {
-            printf("Input directory not found\n");
-            return EXIT_FAILURE;
+            
         }
     }
-    
     
     DL_SORT(shapes, areacmp);
     img_list *elt,*tmp;

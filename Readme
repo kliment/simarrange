@@ -6,7 +6,7 @@ The parts are assumed to be in the correct printable orientation already.
 
 Usage
 
-./sa
+./sa test
 
 This will convert the STLs in the directory "test" into plates using the default options, and emit these plates and thumbnails of them into the current directory.
 
@@ -24,37 +24,33 @@ Minimal spacing between parts, in mm, default 1, must be a positive integer
 rotational granularity of search space in degrees, default 10 (reduce for tighter, slower packing)
 -p --posstep
 positional granularity of search space in mm, default 5 (reduce for tighter, slower packing)
--i --inputdir
-input directory, default "test"
 -o --outputdir
 output directory, default "."
--f --inputfile
-input file, can be used multiple times, can be combined with -i
 
 
 Examples
 
-./sa -x 200 -y 150 -i input -o output
+./sa -x 200 -y 150 -o output input
 
 Convert all files from the directory "input" into plates of size 200x150mm and save to directory "output", creating it if necessary
 
-./sa -x 179 -c -i input
+./sa -x 179 -c input
 
 Convert all files from the directory "input" into circular plates of 170mm diameter and save to directory "output", creating it if necessary
 
-./sa -s 10 -i input
+./sa -s 10 input
 
 Convert all files from the directory "input" into plates of size 200x200mm with 10mm spacing between parts
 
-./sa -x60 -y60 -s3 -i blah -p 2
+./sa -x60 -y60 -s3 blah -p 2
 
 Convert all files from the directory "blah" into plates of size 60x60mm with 3mm spacing between parts and 2mm search grid
 
-./sa -f file1.stl -f file1.stl -f file2.stl -f file2.stl -f file2.stl -f file2.stl
+./sa file1.stl file1.stl file2.stl file2.stl file2.stl file2.stl
 
 Place two copies of file1.stl and four copies of file2.stl into plates of size 200x200mm
 
-./sa -i input -f file1.stl -f file1.stl -f file2.stl -f file2.stl -f file2.stl -f file2.stl
+./sa input file1.stl file1.stl file2.stl file2.stl file2.stl file2.stl
 
 Place all STL files in the directory "input" as well as two copies of file1.stl and four copies of file2.stl into plates of size 200x200mm
 
