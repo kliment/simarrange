@@ -70,3 +70,12 @@ sudo apt-get install libhighgui-dev libcv-dev libargtable2-dev
 
 A build script called build.sh is included in the package. Run it to compile the program.
 
+
+Compiling on Mac OS
+
+First, you will need to install Homebrew. Once you've done that, run
+
+brew install argtable
+brew install opencv
+
+and then run the build.sh script included with simarrange to compile the program.
