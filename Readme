@@ -26,6 +26,8 @@ rotational granularity of search space in degrees, default 10 (reduce for tighte
 positional granularity of search space in mm, default 5 (reduce for tighter, slower packing)
 -o --outputdir
 output directory, default "."
+-d --dryrun
+only do a dry run, computing placement but not producing any output file
 
 
 Examples

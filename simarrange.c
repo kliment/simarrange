@@ -193,10 +193,11 @@ int main(int argc, char** argv){
     struct arg_int  *ar  = arg_int0("r","rotstep",NULL,              "rotation step when searching (default 10 degrees)");
     struct arg_int  *ap  = arg_int0("p","posstep",NULL,              "positional step when searching (default 5mm)");
     struct arg_lit  *ac  = arg_lit0("c","circle",              "circular print area with diameter given by -x");
+    struct arg_lit  *adryrun  = arg_lit0("d","dryrun",              "only do a dry run, computing placement but not producing any output file");
     struct arg_str  *aodir = arg_str0("o","outputdir",NULL,  "output directory (default .)");
     struct arg_file  *ainfile = arg_filen(NULL,NULL,NULL,1,argc+2,  "input file or dir (any number allowed)");
     struct arg_end  *end      = arg_end(20);
-    void* argtable[] = {aw,ah,as,ar,ap,ac,aodir,ainfile,end};
+    void* argtable[] = {aw,ah,as,ar,ap,ac,aodir,ainfile,adryrun,end};
     
     int nerrors;
     nerrors = arg_parse(argc,argv,argtable);
@@ -225,6 +226,9 @@ int main(int argc, char** argv){
     }
     if(ap->count){
         posstep=ap->ival[0];
+    }
+    if(adryrun->count){
+        printf("Running in dry run mode (no output file will be produced)\n");
     }
     
     if(!indir){
@@ -364,92 +368,96 @@ int main(int argc, char** argv){
             printf("The files skipped in the last stage do not fit on plate in any tested orientation! They might be too large for the print area.\n");
             return EXIT_FAILURE;
         }
-        char fn[512];
         
-        sprintf(fn,"plate%02d.png",plate);
-        outdir[0]=0;
-        if(aodir->count){
-            mkdir(aodir->sval[0],0777);
-            strcpy(outdir,aodir->sval[0]);
-            strcat(outdir,"/");
-        }
-        strcat(outdir,fn);
-        cvFlip(img,NULL,0);
-        cvSaveImage(outdir,img,0);
-        sprintf(fn,"plate%02d.stl",plate);
-        outdir[0]=0;
-        if(aodir->count){
-            mkdir(aodir->sval[0],0777);
-            strcpy(outdir,aodir->sval[0]);
-            strcat(outdir,"/");
-        }
-        strcat(outdir,fn);
-        FILE *fp;
-        int i;
-        fp = fopen(outdir, "w");
-        if(fp == NULL){
-          printf("Could not open output file %s\n",fn);
-          return EXIT_FAILURE;
-        }
-        fprintf(fp, "%s", fn);
-        for(i = strlen(fn); i < LABEL_SIZE; i++) putc(0, fp);
-        fseek(fp, LABEL_SIZE, SEEK_SET);
-        
-        int totalfacets=0;
-        DL_FOREACH(shapes,elt){
-            if(elt->plate==plate){
-                totalfacets+=elt->stl->stats.number_of_facets;
-            }
-        }
-        stl_put_little_int(fp, totalfacets);
-        DL_FOREACH(shapes,elt){
-            if(elt->plate==plate){
-                stl_file *s=elt->stl;
-                stl_translate(s,0-(s->stats.max.x-s->stats.min.x)/2.0,0-(s->stats.max.y-s->stats.min.y)/2.0,0);
-                stl_rotate_z(s,-elt->rotangle);
-                stl_translate_rel(s,elt->x,elt->y,0 );
-                stl_write_binary_block(s,fp);
-            }
-        }
-        
-        fclose(fp);
-        stl_file stl_in;
-        int last_edges_fixed = 0;
-        int iterations = 2;
-        stl_open(&stl_in, fn);
-        stl_check_facets_exact(&stl_in);
-        stl_in.stats.facets_w_1_bad_edge = 
-            (stl_in.stats.connected_facets_2_edge -
-            stl_in.stats.connected_facets_3_edge);
-        stl_in.stats.facets_w_2_bad_edge = 
-            (stl_in.stats.connected_facets_1_edge -
-            stl_in.stats.connected_facets_2_edge);
-        stl_in.stats.facets_w_3_bad_edge = 
-            (stl_in.stats.number_of_facets -
-            stl_in.stats.connected_facets_1_edge);
-        float tolerance = stl_in.stats.shortest_edge;
-        float increment = stl_in.stats.bounding_diameter / 10000.0;
-        if(stl_in.stats.connected_facets_3_edge < stl_in.stats.number_of_facets)
+        if (!adryrun->count)
         {
-          for(i = 0; i < iterations; i++)
-            {
-              if(stl_in.stats.connected_facets_3_edge < 
-             stl_in.stats.number_of_facets)
-            {
-              stl_check_facets_nearby(&stl_in, tolerance);
-              last_edges_fixed = stl_in.stats.edges_fixed;
-              tolerance += increment;
+            char fn[512];
+            
+            sprintf(fn,"plate%02d.png",plate);
+            outdir[0]=0;
+            if(aodir->count){
+                mkdir(aodir->sval[0],0777);
+                strcpy(outdir,aodir->sval[0]);
+                strcat(outdir,"/");
             }
-          }
-          stl_remove_unconnected_facets(&stl_in);
-          stl_fill_holes(&stl_in);
+            strcat(outdir,fn);
+            cvFlip(img,NULL,0);
+            cvSaveImage(outdir,img,0);
+            sprintf(fn,"plate%02d.stl",plate);
+            outdir[0]=0;
+            if(aodir->count){
+                mkdir(aodir->sval[0],0777);
+                strcpy(outdir,aodir->sval[0]);
+                strcat(outdir,"/");
+            }
+            strcat(outdir,fn);
+            FILE *fp;
+            int i;
+            fp = fopen(outdir, "w");
+            if(fp == NULL){
+              printf("Could not open output file %s\n",fn);
+              return EXIT_FAILURE;
+            }
+            fprintf(fp, "%s", fn);
+            for(i = strlen(fn); i < LABEL_SIZE; i++) putc(0, fp);
+            fseek(fp, LABEL_SIZE, SEEK_SET);
+            
+            int totalfacets=0;
+            DL_FOREACH(shapes,elt){
+                if(elt->plate==plate){
+                    totalfacets+=elt->stl->stats.number_of_facets;
+                }
+            }
+            stl_put_little_int(fp, totalfacets);
+            DL_FOREACH(shapes,elt){
+                if(elt->plate==plate){
+                    stl_file *s=elt->stl;
+                    stl_translate(s,0-(s->stats.max.x-s->stats.min.x)/2.0,0-(s->stats.max.y-s->stats.min.y)/2.0,0);
+                    stl_rotate_z(s,-elt->rotangle);
+                    stl_translate_rel(s,elt->x,elt->y,0 );
+                    stl_write_binary_block(s,fp);
+                }
+            }
+            
+            fclose(fp);
+            stl_file stl_in;
+            int last_edges_fixed = 0;
+            int iterations = 2;
+            stl_open(&stl_in, fn);
+            stl_check_facets_exact(&stl_in);
+            stl_in.stats.facets_w_1_bad_edge = 
+                (stl_in.stats.connected_facets_2_edge -
+                stl_in.stats.connected_facets_3_edge);
+            stl_in.stats.facets_w_2_bad_edge = 
+                (stl_in.stats.connected_facets_1_edge -
+                stl_in.stats.connected_facets_2_edge);
+            stl_in.stats.facets_w_3_bad_edge = 
+                (stl_in.stats.number_of_facets -
+                stl_in.stats.connected_facets_1_edge);
+            float tolerance = stl_in.stats.shortest_edge;
+            float increment = stl_in.stats.bounding_diameter / 10000.0;
+            if(stl_in.stats.connected_facets_3_edge < stl_in.stats.number_of_facets)
+            {
+              for(i = 0; i < iterations; i++)
+                {
+                  if(stl_in.stats.connected_facets_3_edge < 
+                 stl_in.stats.number_of_facets)
+                {
+                  stl_check_facets_nearby(&stl_in, tolerance);
+                  last_edges_fixed = stl_in.stats.edges_fixed;
+                  tolerance += increment;
+                }
+              }
+              stl_remove_unconnected_facets(&stl_in);
+              stl_fill_holes(&stl_in);
+            }
+            stl_fix_normal_directions(&stl_in);
+            stl_fix_normal_values(&stl_in);
+            stl_verify_neighbors(&stl_in);
+            stl_generate_shared_vertices(&stl_in);
+            stl_write_binary(&stl_in, fn,fn);
+            stl_close(&stl_in);
         }
-        stl_fix_normal_directions(&stl_in);
-        stl_fix_normal_values(&stl_in);
-        stl_verify_neighbors(&stl_in);
-        stl_generate_shared_vertices(&stl_in);
-        stl_write_binary(&stl_in, fn,fn);
-        stl_close(&stl_in);
             
         plate+=1;
     
