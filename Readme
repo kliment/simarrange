@@ -75,6 +75,7 @@ Compiling on Mac OS
 
 First, you will need to install Homebrew. Once you've done that, run
 
+brew tap homebrew/science
 brew install argtable
 brew install opencv
 
