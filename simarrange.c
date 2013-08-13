@@ -272,7 +272,7 @@ int main(int argc, char** argv){
     if (nerrors > 0)
         {
         /* Display the error details contained in the arg_end struct.*/
-        arg_print_errors(stdout,end,"");
+        arg_print_errors(stdout,end,argv[0]);
         return EXIT_FAILURE;
         }
     
