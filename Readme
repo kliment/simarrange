@@ -18,6 +18,8 @@ x dimension of build plate in mm, default 200, must be a positive integer
 y dimension of build plate in mm, default 200, must be a positive integer
 -c --circle
 build plate is circular, with diameter given by -x
+-m --middle
+place first part in the middle of the plate, and pack around it (slower)
 -s --spacing
 Minimal spacing between parts, in mm, default 1, must be a positive integer
 -r --rotstep
@@ -43,6 +45,10 @@ Convert all files from the directory "input" into circular plates of 170mm diame
 ./sa -s 10 input
 
 Convert all files from the directory "input" into plates of size 200x200mm with 10mm spacing between parts
+
+./sa -m input
+
+Convert all files from the directory "input" into plates of size 200x200mm, packing from the middle
 
 ./sa -x60 -y60 -s3 blah -p 2
 

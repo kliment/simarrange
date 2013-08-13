@@ -24,6 +24,9 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include <dirent.h>
 #include <argtable2.h>
 
+inline int max ( int a, int b ) { return a > b ? a : b; }
+inline int min ( int a, int b ) { return a < b ? a : b; }
+
 typedef struct img_list{
     IplImage *image;
     long area;
@@ -37,6 +40,56 @@ typedef struct img_list{
     struct img_list *prev,*next;
 } img_list;
 
+
+void sqspiral(int n, int *i, int *j)
+{
+  double x = sqrt(n+1);
+  int xi = floor(x);
+  int xisq = xi * xi;
+  if (xi % 2 == 0)  // even
+  { 
+    int xi2 = xi / 2;
+    if (x == xi)
+    {
+      *i = -xi2 + 1;
+      *j = xi2;
+    }
+    // top left number is xisq - xi - 1, bottom left n - xisq - 1
+    else if (n <= xisq + xi + 1)
+    {
+      *i = -xi2;
+      *j = xi2 - (n - xisq - 1); 
+    }
+    else 
+    {
+      *i = -xi2 + (n - xisq - xi - 1);
+      *j = -xi2;
+    }
+  }
+  else  // odd 
+  {
+    if (x == xi)
+    {
+      int xi2 = (xi-1)/2;
+      *i = xi2;
+      *j = -xi2;
+    } 
+    else 
+    {
+      int xi2 = (xi + 1) / 2;
+      if (n <= xisq + xi + 1)
+      {
+        *i = xi2;
+        *j = -xi2 + (n - xisq);
+      } 
+      else
+      {
+        *i = xi2 - (n - xisq - xi - 1);
+        *j = xi2;
+      }
+    }
+  }
+}
 
 static void
 stl_put_little_int(FILE *fp, int value_in)
@@ -177,7 +230,6 @@ int dl_count(img_list *l){
 }
 
 int main(int argc, char** argv){
-    
     int w=200,h=200;
     int spacing=1;
     int rotstep=10;
@@ -193,11 +245,12 @@ int main(int argc, char** argv){
     struct arg_int  *ar  = arg_int0("r","rotstep",NULL,              "rotation step when searching (default 10 degrees)");
     struct arg_int  *ap  = arg_int0("p","posstep",NULL,              "positional step when searching (default 5mm)");
     struct arg_lit  *ac  = arg_lit0("c","circle",              "circular print area with diameter given by -x");
+    struct arg_lit  *acorigin  = arg_lit0("m","middle",              "place objects from middle of build area out");
     struct arg_lit  *adryrun  = arg_lit0("d","dryrun",              "only do a dry run, computing placement but not producing any output file");
     struct arg_str  *aodir = arg_str0("o","outputdir",NULL,  "output directory (default .)");
     struct arg_file  *ainfile = arg_filen(NULL,NULL,NULL,1,argc+2,  "input file or dir (any number allowed)");
     struct arg_end  *end      = arg_end(20);
-    void* argtable[] = {aw,ah,as,ar,ap,ac,aodir,ainfile,adryrun,end};
+    void* argtable[] = {aw,ah,as,ar,ap,ac,acorigin,aodir,ainfile,adryrun,end};
     
     int nerrors;
     nerrors = arg_parse(argc,argv,argtable);
@@ -315,8 +368,9 @@ int main(int argc, char** argv){
         cvZero(rpatch);
         cvZero(testfit);
         cvZero(itmp);
-        
+        int firstpassed=0, placed=0;
         DL_FOREACH(shapes,elt) {
+            placed=0;
             if(elt->plate>-1)
                 continue;
             //printf("File: %s\n",elt->filename);
@@ -325,8 +379,16 @@ int main(int argc, char** argv){
             cvDilate(elt->image,itmp,NULL,spacing);
             for(rotangle=0;rotangle<360;rotangle+=rotstep){
                 cvWarpAffine(itmp,rpatch,cv2DRotationMatrix(center, rotangle, 1.0, rot),CV_INTER_LINEAR+CV_WARP_FILL_OUTLIERS, cvScalarAll(0) );
-                for(ypos=1;ypos<minypos;ypos+=posstep){
-                    for(xpos=1;xpos<minxpos;xpos+=posstep){
+                if(firstpassed && acorigin->count){
+                    int centricords=0,mincentricords=max(w-1,h-1)*max(w-1,h-1)/(posstep*posstep);
+                    for(centricords=0;centricords<mincentricords;centricords++){
+                        xpos=ypos=0;
+                        sqspiral(centricords, &xpos, &ypos);
+                        xpos*=posstep;
+                        ypos*=posstep;
+                        
+                        xpos=max(0,min(xpos+w/2,w-1));
+                        ypos=max(0,min(ypos+h/2,h-1));
                         cvSetImageROI(rpatch, cvRect(w-xpos,h-ypos,w,h));
                         cvAnd(rpatch, img, testfit, NULL);
                         if(!cvCountNonZero(testfit)){
@@ -336,15 +398,57 @@ int main(int argc, char** argv){
                                 minxpos=xpos;
                                 minypos=ypos;
                                 minrotangle=rotangle;
+                                mincentricords=centricords;
+                                placed=1;
                             }
                         }
                         cvResetImageROI(rpatch);
-                        
+                    }
+                }else{
+                    for(ypos=1;ypos<minypos;ypos+=posstep){
+                        for(xpos=1;xpos<minxpos;xpos+=posstep){
+                            cvSetImageROI(rpatch, cvRect(w-xpos,h-ypos,w,h));
+                            cvAnd(rpatch, img, testfit, NULL);
+                            if(!cvCountNonZero(testfit)){
+                                int prec=cvCountNonZero(img);
+                                cvAdd(rpatch, img, testfit, NULL);
+                                if(prec!=cvCountNonZero(testfit)){
+                                    minxpos=xpos;
+                                    minypos=ypos;
+                                    minrotangle=rotangle;
+                                    placed=1;
+                                }
+                            }
+                            cvResetImageROI(rpatch);
+                            
+                        }
                     }
                 }
             }
-            
-            if(minxpos<w-1 || minypos<h-1){
+            if(!firstpassed && acorigin->count){
+                int centricords=0;
+                for(centricords=0;centricords<max(w-1,h-1)*max(w-1,h-1);centricords++){
+                    xpos=ypos=0;
+                    sqspiral(centricords, &xpos, &ypos);
+                    xpos=max(0,min(xpos+w/2,w-1));
+                    ypos=max(0,min(ypos+h/2,h-1));
+                    cvSetImageROI(rpatch, cvRect(w-xpos,h-ypos,w,h));
+                    cvAnd(rpatch, img, testfit, NULL);
+                    if(!cvCountNonZero(testfit)){
+                        int prec=cvCountNonZero(img);
+                        cvAdd(rpatch, img, testfit, NULL);
+                        if(prec!=cvCountNonZero(testfit)){
+                            minxpos=xpos;
+                            minypos=ypos;
+                            placed=1;
+                            cvResetImageROI(rpatch);
+                            break;
+                        }
+                    }
+                    
+                }
+            }
+            if(placed){
                 printf("File: %s minx: %d, miny: %d, minrot: %d\n",elt->filename, minxpos, minypos, minrotangle);
                 cvWarpAffine(elt->image,rpatch,cv2DRotationMatrix(center, minrotangle, 1.0, rot),CV_INTER_LINEAR+CV_WARP_FILL_OUTLIERS, cvScalarAll(0) );
                 cvSetImageROI(rpatch, cvRect(w-minxpos,h-minypos,w,h));
@@ -359,7 +463,7 @@ int main(int argc, char** argv){
             }else{
                 printf("SKIP: %s skipped for this plate\n",elt->filename);
             }
-            
+            firstpassed=1;
         
             
         }
