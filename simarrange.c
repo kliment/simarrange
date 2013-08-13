@@ -613,6 +613,10 @@ int main(int argc, char** argv){
     DL_FOREACH_SAFE(shapes,elt,tmp) {
       cvReleaseImage(&(elt->image)); 
       free(elt->stl);
+      free(elt->x);
+      free(elt->y);
+      free(elt->rotangle);
+      free(elt->plate);
       DL_DELETE(shapes,elt);
       free(elt);
     }
