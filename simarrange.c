@@ -24,6 +24,8 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include <dirent.h>
 #include <argtable2.h>
 
+#define FILENAME_LEN 350
+
 inline int max ( int a, int b ) { return a > b ? a : b; }
 inline int min ( int a, int b ) { return a < b ? a : b; }
 
@@ -35,7 +37,7 @@ typedef struct img_list{
     int y;
     int rotangle;
     int plate;
-    char filename[350];
+    char filename[FILENAME_LEN];
     stl_file *stl;
     struct img_list *prev,*next;
 } img_list;
@@ -307,12 +309,12 @@ int main(int argc, char** argv){
                     if ((dir = opendir (indir)) != NULL) {
                         while ((ent = readdir (dir)) != NULL) {
                             int i;
-                            char d[350];
+                            char d[FILENAME_LEN];
                             strcpy(d,ent->d_name);
                             for(i = 0; d[i]; i++)
                                 d[i] = tolower(d[i]);
                             if(strstr(d,".stl")!=0){
-                                char f[350];
+                                char f[FILENAME_LEN];
                                 f[0]=0;
                                 strcat(f,indir);
                                 strcat(f+strlen(f),"/");
