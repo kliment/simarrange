@@ -243,7 +243,6 @@ int main(int argc, char** argv){
     int rotstep=10;
     int posstep=5;
     int c;
-    char defdir[]="test";
     char outdir[512];
     outdir[0]=0;
     char *indir=NULL;
@@ -298,10 +297,6 @@ int main(int argc, char** argv){
     }
     if(adryrun->count){
         printf("Running in dry run mode (no output file will be produced)\n");
-    }
-    
-    if(!indir){
-        indir=defdir;
     }
     
     
