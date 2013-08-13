@@ -25,6 +25,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include <argtable2.h>
 #include <ctype.h>
 #include <string.h>
+#include <limits.h>
 
 #define FILENAME_LEN 350
 
@@ -36,6 +37,7 @@ typedef struct img_list{
     long area;
     int count;
     int done; // counts the number of copies already plated
+    int countinplate; // counts the number of copies in the latest plate
     int *x;
     int *y;
     int *rotangle;
@@ -593,10 +595,13 @@ int main(int argc, char** argv){
                 }
             }
             stl_put_little_int(fp, totalfacets);
+            int maxextraplates = INT_MAX;
             DL_FOREACH(shapes,elt){
+                elt->countinplate = 0;
                 for (copy = 0; copy < elt->done; ++copy)
                 {
                     if(elt->plate[copy]==plate){
+                        elt->countinplate++;
                         stl_file *s=elt->stl;
                         stl_translate(s,0-(s->stats.max.x-s->stats.min.x)/2.0,0-(s->stats.max.y-s->stats.min.y)/2.0,0);
                         stl_rotate_z(s,-elt->rotangle[copy]);
@@ -607,6 +612,10 @@ int main(int argc, char** argv){
                             stl_rotate_z(s,elt->rotangle[copy]);
                         }
                     }
+                }
+                if (elt->countinplate > 0) {
+                    int extraplates = (elt->count - elt->done) / elt->countinplate;
+                    maxextraplates = min(maxextraplates, extraplates);
                 }
             }
             
@@ -648,6 +657,16 @@ int main(int argc, char** argv){
             stl_generate_shared_vertices(&stl_in);
             stl_write_binary(&stl_in, fn,fn);
             stl_close(&stl_in);
+
+            if (maxextraplates > 0)
+            {
+                printf("Making %d duplicates of plate %d\n", maxextraplates, plate);
+                // TODO: duplicate files here
+                DL_FOREACH(shapes,elt){
+                    elt->done += elt->countinplate * maxextraplates;
+                }
+                plate += maxextraplates;
+            }
         }
             
         plate+=1;
