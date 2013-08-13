@@ -331,7 +331,7 @@ int main(int argc, char** argv){
     struct arg_lit  *adryrun  = arg_lit0("d","dryrun",              "only do a dry run, computing placement but not producing any output file");
     struct arg_lit  *ahelp  = arg_lit0("h","help",              "display this help message");
     struct arg_str  *aodir = arg_str0("o","outputdir",NULL,  "output directory (default .)");
-    struct arg_file  *arepeat = arg_filen("r","repeat",NULL,0,argc+2,  "add a given number of copies of the input file or dir by specifying filepath+count");
+    struct arg_file  *arepeat = arg_filen(NULL,"repeat",NULL,0,argc+2,  "add a given number of copies of the input file or dir by specifying filepath+count");
     struct arg_file  *ainfile = arg_filen(NULL,NULL,NULL,0,argc+2,  "input file or dir (any number allowed)");
     struct arg_end  *end      = arg_end(20);
     void* argtable[] = {aw,ah,as,ar,ap,ac,acorigin,aodir,ainfile,arepeat,adryrun,ahelp,end};
