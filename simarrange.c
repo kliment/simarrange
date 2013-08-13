@@ -579,6 +579,7 @@ int main(int argc, char** argv){
     cvReleaseImage(&img);
     cvReleaseImage(&rpatch);
     cvReleaseImage(&testfit);
-    
+
+    return 0;
 }
 
