@@ -34,10 +34,11 @@ typedef struct img_list{
     IplImage *image;
     long area;
     int count;
-    int x;
-    int y;
-    int rotangle;
-    int plate;
+    int done; // counts the number of copies already plated
+    int *x;
+    int *y;
+    int *rotangle;
+    int *plate;
     char filename[FILENAME_LEN];
     stl_file *stl;
     struct img_list *prev,*next;
@@ -213,9 +214,15 @@ void add_stl(char *filename, int count, int width, int height, img_list **shapes
 
     img_list *e=(img_list*)malloc(sizeof(img_list));
     e->image=img;
-    e->plate=-1;
+    e->x=(int*)malloc(sizeof(int)*count);
+    e->y=(int*)malloc(sizeof(int)*count);
+    e->rotangle=(int*)malloc(sizeof(int)*count);
+    e->plate=(int*)malloc(sizeof(int)*count);
+    for (i = 0; i < count; ++i)
+      e->plate[i] = -1;
     e->stl=s;
     e->count=count;
+    e->done = 0;
     e->area=cvCountNonZero(e->image);
     strcpy(e->filename,filename);
     DL_APPEND(*shapes,e);
@@ -364,7 +371,7 @@ int main(int argc, char** argv){
     itmp=cvCreateImage(cvSize(2*w,2*h), IPL_DEPTH_8U, 1);
     CvPoint2D32f center=cvPoint2D32f((w),(h));
     
-            
+    unsigned copy;    
     while(dl_count(shapes)){
         printf("Generating plate %d\n",plate);
         string_list *ign, *igntmp;
@@ -384,31 +391,73 @@ int main(int argc, char** argv){
         int firstpassed=0, placed=0;
         DL_FOREACH(shapes,elt) {
             placed=0;
-            if(elt->plate>-1)
-                continue;
-            int ignore_this = 0;
-            LL_FOREACH(ignores, ign) {
-                if (strncmp(elt->filename, ign->filename, FILENAME_LEN) == 0) {
-                    ignore_this = 1;
-                    break;
+            for (copy = elt->done; copy < elt->count; copy++) {
+                int ignore_this = 0;
+                LL_FOREACH(ignores, ign) {
+                    if (strncmp(elt->filename, ign->filename, FILENAME_LEN) == 0) {
+                        ignore_this = 1;
+                        break;
+                    }
                 }
-            }
-            if(ignore_this)
-                continue;
-            //printf("File: %s\n",elt->filename);
-            cvCopy(img, testfit, NULL);
-            int xpos=1, ypos=1, rotangle=0, minxpos=w-1, minypos=h-1, minrotangle=0;
-            cvDilate(elt->image,itmp,NULL,spacing);
-            for(rotangle=0;rotangle<360;rotangle+=rotstep){
-                cvWarpAffine(itmp,rpatch,cv2DRotationMatrix(center, rotangle, 1.0, rot),CV_INTER_LINEAR+CV_WARP_FILL_OUTLIERS, cvScalarAll(0) );
-                if(firstpassed && acorigin->count){
-                    int centricords=0,mincentricords=max(w-1,h-1)*max(w-1,h-1)/(posstep*posstep);
-                    for(centricords=0;centricords<mincentricords;centricords++){
+                if(ignore_this)
+                    break;
+                //printf("File: %s\n",elt->filename);
+                cvCopy(img, testfit, NULL);
+                int xpos=1, ypos=1, rotangle=0, minxpos=w-1, minypos=h-1, minrotangle=0;
+                cvDilate(elt->image,itmp,NULL,spacing);
+                for(rotangle=0;rotangle<360;rotangle+=rotstep){
+                    cvWarpAffine(itmp,rpatch,cv2DRotationMatrix(center, rotangle, 1.0, rot),CV_INTER_LINEAR+CV_WARP_FILL_OUTLIERS, cvScalarAll(0) );
+                    if(firstpassed && acorigin->count){
+                        int centricords=0,mincentricords=max(w-1,h-1)*max(w-1,h-1)/(posstep*posstep);
+                        for(centricords=0;centricords<mincentricords;centricords++){
+                            xpos=ypos=0;
+                            sqspiral(centricords, &xpos, &ypos);
+                            xpos*=posstep;
+                            ypos*=posstep;
+                            
+                            xpos=max(0,min(xpos+w/2,w-1));
+                            ypos=max(0,min(ypos+h/2,h-1));
+                            cvSetImageROI(rpatch, cvRect(w-xpos,h-ypos,w,h));
+                            cvAnd(rpatch, img, testfit, NULL);
+                            if(!cvCountNonZero(testfit)){
+                                int prec=cvCountNonZero(img);
+                                cvAdd(rpatch, img, testfit, NULL);
+                                if(prec!=cvCountNonZero(testfit)){
+                                    minxpos=xpos;
+                                    minypos=ypos;
+                                    minrotangle=rotangle;
+                                    mincentricords=centricords;
+                                    placed=1;
+                                }
+                            }
+                            cvResetImageROI(rpatch);
+                        }
+                    }else{
+                        for(ypos=1;ypos<minypos;ypos+=posstep){
+                            for(xpos=1;xpos<minxpos;xpos+=posstep){
+                                cvSetImageROI(rpatch, cvRect(w-xpos,h-ypos,w,h));
+                                cvAnd(rpatch, img, testfit, NULL);
+                                if(!cvCountNonZero(testfit)){
+                                    int prec=cvCountNonZero(img);
+                                    cvAdd(rpatch, img, testfit, NULL);
+                                    if(prec!=cvCountNonZero(testfit)){
+                                        minxpos=xpos;
+                                        minypos=ypos;
+                                        minrotangle=rotangle;
+                                        placed=1;
+                                    }
+                                }
+                                cvResetImageROI(rpatch);
+                                
+                            }
+                        }
+                    }
+                }
+                if(!firstpassed && acorigin->count){
+                    int centricords=0;
+                    for(centricords=0;centricords<max(w-1,h-1)*max(w-1,h-1);centricords++){
                         xpos=ypos=0;
                         sqspiral(centricords, &xpos, &ypos);
-                        xpos*=posstep;
-                        ypos*=posstep;
-                        
                         xpos=max(0,min(xpos+w/2,w-1));
                         ypos=max(0,min(ypos+h/2,h-1));
                         cvSetImageROI(rpatch, cvRect(w-xpos,h-ypos,w,h));
@@ -419,77 +468,35 @@ int main(int argc, char** argv){
                             if(prec!=cvCountNonZero(testfit)){
                                 minxpos=xpos;
                                 minypos=ypos;
-                                minrotangle=rotangle;
-                                mincentricords=centricords;
                                 placed=1;
+                                cvResetImageROI(rpatch);
+                                break;
                             }
                         }
-                        cvResetImageROI(rpatch);
+                        
                     }
+                }
+                if(placed){
+                    printf("File: %s minx: %d, miny: %d, minrot: %d\n",elt->filename, minxpos, minypos, minrotangle);
+                    cvWarpAffine(elt->image,rpatch,cv2DRotationMatrix(center, minrotangle, 1.0, rot),CV_INTER_LINEAR+CV_WARP_FILL_OUTLIERS, cvScalarAll(0) );
+                    cvSetImageROI(rpatch, cvRect(w-minxpos,h-minypos,w,h));
+                    cvAdd(rpatch,img,testfit,NULL);
+                    cvCopy(testfit,img,NULL);
+                    cvResetImageROI(rpatch);
+                    elt->x[elt->done]=minxpos;
+                    elt->y[elt->done]=minypos;
+                    elt->rotangle[elt->done]=minrotangle;
+                    elt->plate[elt->done]=plate;
+                    elt->done++;
+                    platecount++;
                 }else{
-                    for(ypos=1;ypos<minypos;ypos+=posstep){
-                        for(xpos=1;xpos<minxpos;xpos+=posstep){
-                            cvSetImageROI(rpatch, cvRect(w-xpos,h-ypos,w,h));
-                            cvAnd(rpatch, img, testfit, NULL);
-                            if(!cvCountNonZero(testfit)){
-                                int prec=cvCountNonZero(img);
-                                cvAdd(rpatch, img, testfit, NULL);
-                                if(prec!=cvCountNonZero(testfit)){
-                                    minxpos=xpos;
-                                    minypos=ypos;
-                                    minrotangle=rotangle;
-                                    placed=1;
-                                }
-                            }
-                            cvResetImageROI(rpatch);
-                            
-                        }
-                    }
+                    printf("SKIP: %s skipped for this plate\n",elt->filename);
+                    ign = (string_list*) malloc(sizeof(string_list));
+                    strncpy(ign->filename, elt->filename, FILENAME_LEN);
+                    LL_PREPEND(ignores, ign);
                 }
+                firstpassed=1;
             }
-            if(!firstpassed && acorigin->count){
-                int centricords=0;
-                for(centricords=0;centricords<max(w-1,h-1)*max(w-1,h-1);centricords++){
-                    xpos=ypos=0;
-                    sqspiral(centricords, &xpos, &ypos);
-                    xpos=max(0,min(xpos+w/2,w-1));
-                    ypos=max(0,min(ypos+h/2,h-1));
-                    cvSetImageROI(rpatch, cvRect(w-xpos,h-ypos,w,h));
-                    cvAnd(rpatch, img, testfit, NULL);
-                    if(!cvCountNonZero(testfit)){
-                        int prec=cvCountNonZero(img);
-                        cvAdd(rpatch, img, testfit, NULL);
-                        if(prec!=cvCountNonZero(testfit)){
-                            minxpos=xpos;
-                            minypos=ypos;
-                            placed=1;
-                            cvResetImageROI(rpatch);
-                            break;
-                        }
-                    }
-                    
-                }
-            }
-            if(placed){
-                printf("File: %s minx: %d, miny: %d, minrot: %d\n",elt->filename, minxpos, minypos, minrotangle);
-                cvWarpAffine(elt->image,rpatch,cv2DRotationMatrix(center, minrotangle, 1.0, rot),CV_INTER_LINEAR+CV_WARP_FILL_OUTLIERS, cvScalarAll(0) );
-                cvSetImageROI(rpatch, cvRect(w-minxpos,h-minypos,w,h));
-                cvAdd(rpatch,img,testfit,NULL);
-                cvCopy(testfit,img,NULL);
-                cvResetImageROI(rpatch);
-                elt->x=minxpos;
-                elt->y=minypos;
-                elt->rotangle=minrotangle;
-                elt->plate=plate;
-                platecount++;
-            }else{
-                printf("SKIP: %s skipped for this plate\n",elt->filename);
-                ign = (string_list*) malloc(sizeof(string_list));
-                strncpy(ign->filename, elt->filename, FILENAME_LEN);
-                LL_PREPEND(ignores, ign);
-            }
-            firstpassed=1;
-
         } // end of the DL_FOREACH(shapes,elt) { loop
 
         LL_FOREACH_SAFE(ignores, ign, igntmp) {
@@ -537,18 +544,24 @@ int main(int argc, char** argv){
             
             int totalfacets=0;
             DL_FOREACH(shapes,elt){
-                if(elt->plate==plate){
-                    totalfacets+=elt->stl->stats.number_of_facets;
+                for (copy = 0; copy < elt->done; ++copy)
+                {
+                    if(elt->plate[copy]==plate){
+                        totalfacets+=elt->stl->stats.number_of_facets;
+                    }
                 }
             }
             stl_put_little_int(fp, totalfacets);
             DL_FOREACH(shapes,elt){
-                if(elt->plate==plate){
-                    stl_file *s=elt->stl;
-                    stl_translate(s,0-(s->stats.max.x-s->stats.min.x)/2.0,0-(s->stats.max.y-s->stats.min.y)/2.0,0);
-                    stl_rotate_z(s,-elt->rotangle);
-                    stl_translate_rel(s,elt->x,elt->y,0 );
-                    stl_write_binary_block(s,fp);
+                for (copy = 0; copy < elt->done; ++copy)
+                {
+                    if(elt->plate[copy]==plate){
+                        stl_file *s=elt->stl;
+                        stl_translate(s,0-(s->stats.max.x-s->stats.min.x)/2.0,0-(s->stats.max.y-s->stats.min.y)/2.0,0);
+                        stl_rotate_z(s,-elt->rotangle[copy]);
+                        stl_translate_rel(s,elt->x[copy],elt->y[copy],0 );
+                        stl_write_binary_block(s,fp);
+                    }
                 }
             }
             
