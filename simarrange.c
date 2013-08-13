@@ -42,6 +42,11 @@ typedef struct img_list{
     struct img_list *prev,*next;
 } img_list;
 
+typedef struct string_list{
+    char filename[FILENAME_LEN];
+    struct string_list *next;
+} string_list;
+
 
 void sqspiral(int n, int *i, int *j)
 {
@@ -358,6 +363,8 @@ int main(int argc, char** argv){
             
     while(dl_count(shapes)){
         printf("Generating plate %d\n",plate);
+        string_list *ign, *igntmp;
+        string_list *ignores = NULL;
         cvZero(img);
         cvLine(img, cvPoint(0,0), cvPoint(w-1,0), cvScalarAll(127), 1, 8, 0);
         cvLine(img, cvPoint(w-1,0), cvPoint(w-1,h-1), cvScalarAll(127), 1, 8, 0);
@@ -374,6 +381,15 @@ int main(int argc, char** argv){
         DL_FOREACH(shapes,elt) {
             placed=0;
             if(elt->plate>-1)
+                continue;
+            int ignore_this = 0;
+            LL_FOREACH(ignores, ign) {
+                if (strncmp(elt->filename, ign->filename, FILENAME_LEN) == 0) {
+                    ignore_this = 1;
+                    break;
+                }
+            }
+            if(ignore_this)
                 continue;
             //printf("File: %s\n",elt->filename);
             cvCopy(img, testfit, NULL);
@@ -464,12 +480,20 @@ int main(int argc, char** argv){
                 platecount++;
             }else{
                 printf("SKIP: %s skipped for this plate\n",elt->filename);
+                ign = (string_list*) malloc(sizeof(string_list));
+                strncpy(ign->filename, elt->filename, FILENAME_LEN);
+                LL_PREPEND(ignores, ign);
             }
             firstpassed=1;
         
             
         }
-        
+
+        LL_FOREACH_SAFE(ignores, ign, igntmp) {
+          LL_DELETE(ignores, ign);
+          free(ign);
+        }
+
         if(!platecount){
             printf("The files skipped in the last stage do not fit on plate in any tested orientation! They might be too large for the print area.\n");
             return EXIT_FAILURE;
