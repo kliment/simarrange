@@ -254,13 +254,21 @@ int main(int argc, char** argv){
     struct arg_lit  *ac  = arg_lit0("c","circle",              "circular print area with diameter given by -x");
     struct arg_lit  *acorigin  = arg_lit0("m","middle",              "place objects from middle of build area out");
     struct arg_lit  *adryrun  = arg_lit0("d","dryrun",              "only do a dry run, computing placement but not producing any output file");
+    struct arg_lit  *ahelp  = arg_lit0("h","help",              "display this help message");
     struct arg_str  *aodir = arg_str0("o","outputdir",NULL,  "output directory (default .)");
     struct arg_file  *ainfile = arg_filen(NULL,NULL,NULL,1,argc+2,  "input file or dir (any number allowed)");
     struct arg_end  *end      = arg_end(20);
-    void* argtable[] = {aw,ah,as,ar,ap,ac,acorigin,aodir,ainfile,adryrun,end};
+    void* argtable[] = {aw,ah,as,ar,ap,ac,acorigin,aodir,ainfile,adryrun,ahelp,end};
     
     int nerrors;
     nerrors = arg_parse(argc,argv,argtable);
+    if(ahelp->count){
+        printf("Usage: %s", argv[0]);
+        arg_print_syntax(stdout, argtable, "\n");
+        printf("Options:\n");
+        arg_print_glossary(stdout, argtable, " %-25s %s\n");
+        return EXIT_SUCCESS;
+    }
     if (nerrors > 0)
         {
         /* Display the error details contained in the arg_end struct.*/
