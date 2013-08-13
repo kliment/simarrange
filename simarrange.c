@@ -669,12 +669,25 @@ int main(int argc, char** argv){
             stl_verify_neighbors(&stl_in);
             stl_generate_shared_vertices(&stl_in);
             stl_write_binary(&stl_in, stlfn, stlfn);
-            stl_close(&stl_in);
 
             if (maxextraplates > 0)
             {
-                // TODO: duplicate files here
+                int k;
+                for (k = 0; k < maxextraplates; ++k) {
+                    int platek = plate + k + 1;
+                    sprintf(tmpfn,"plate%02d.png", platek);
+                    imagefn[0]=0;
+                    strcat(imagefn,outdir);
+                    strcat(imagefn,tmpfn);
+                    cvSaveImage(imagefn,img,0);
+                    sprintf(tmpfn,"plate%02d.stl", platek);
+                    stlfn[0]=0;
+                    strcat(stlfn,outdir);
+                    strcat(stlfn,tmpfn);
+                    stl_write_binary(&stl_in, stlfn, stlfn);
+                }
             }
+            stl_close(&stl_in);
         }
             
         plate += 1 + maxextraplates;
