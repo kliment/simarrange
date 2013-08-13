@@ -189,6 +189,17 @@ stl_translate_rel(stl_file *stl, float x, float y, float z)
 
 
 void add_stl(char *filename, int count, int width, int height, img_list **shapes){
+    img_list *elt;
+    DL_FOREACH(*shapes,elt) {
+        if (strncmp(filename, elt->filename, FILENAME_LEN) == 0) {
+            elt->count += count;
+            elt->x = (int*) realloc(elt->x, sizeof(int)*elt->count);
+            elt->y = (int*) realloc(elt->y, sizeof(int)*elt->count);
+            elt->rotangle = (int*) realloc(elt->rotangle, sizeof(int)*elt->count);
+            elt->plate = (int*) realloc(elt->plate, sizeof(int)*elt->count);
+            return;
+        }
+    }
     stl_file *s=(stl_file *)malloc(sizeof(stl_file));
     memset(s,0,sizeof(stl_file));
     stl_open(s,filename);
