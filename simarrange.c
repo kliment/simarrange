@@ -551,6 +551,27 @@ int main(int argc, char** argv){
             printf("The files skipped in the last stage do not fit on plate in any tested orientation! They might be too large for the print area.\n");
             return EXIT_FAILURE;
         }
+
+        int maxextraplates = INT_MAX;
+        DL_FOREACH(shapes,elt){
+            elt->countinplate = 0;
+            for (copy = 0; copy < elt->done; ++copy)
+            {
+                if (elt->plate[copy] == plate) {
+                    elt->countinplate++;
+                }
+            }
+            if (elt->countinplate > 0) {
+                int extraplates = (elt->count - elt->done) / elt->countinplate;
+                maxextraplates = min(maxextraplates, extraplates);
+            }
+        }
+        if (maxextraplates > 0) {
+            printf("Making %d duplicates of plate %d\n", maxextraplates, plate);
+            DL_FOREACH(shapes,elt){
+                elt->done += elt->countinplate * maxextraplates;
+            }
+        }
         
         if (!adryrun->count)
         {
@@ -595,13 +616,12 @@ int main(int argc, char** argv){
                 }
             }
             stl_put_little_int(fp, totalfacets);
-            int maxextraplates = INT_MAX;
             DL_FOREACH(shapes,elt){
-                elt->countinplate = 0;
+                if (elt->countinplate == 0)
+                    continue;
                 for (copy = 0; copy < elt->done; ++copy)
                 {
                     if(elt->plate[copy]==plate){
-                        elt->countinplate++;
                         stl_file *s=elt->stl;
                         stl_translate(s,0-(s->stats.max.x-s->stats.min.x)/2.0,0-(s->stats.max.y-s->stats.min.y)/2.0,0);
                         stl_rotate_z(s,-elt->rotangle[copy]);
@@ -612,10 +632,6 @@ int main(int argc, char** argv){
                             stl_rotate_z(s,elt->rotangle[copy]);
                         }
                     }
-                }
-                if (elt->countinplate > 0) {
-                    int extraplates = (elt->count - elt->done) / elt->countinplate;
-                    maxextraplates = min(maxextraplates, extraplates);
                 }
             }
             
@@ -660,16 +676,11 @@ int main(int argc, char** argv){
 
             if (maxextraplates > 0)
             {
-                printf("Making %d duplicates of plate %d\n", maxextraplates, plate);
                 // TODO: duplicate files here
-                DL_FOREACH(shapes,elt){
-                    elt->done += elt->countinplate * maxextraplates;
-                }
-                plate += maxextraplates;
             }
         }
             
-        plate+=1;
+        plate += 1 + maxextraplates;
     
         platecount=0;
     }    
