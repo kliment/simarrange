@@ -23,6 +23,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include "utlist.h"
 #include <dirent.h>
 #include <argtable2.h>
+#include <ctype.h>
 
 #define FILENAME_LEN 350
 
