@@ -600,8 +600,12 @@ int main(int argc, char** argv){
                         stl_file *s=elt->stl;
                         stl_translate(s,0-(s->stats.max.x-s->stats.min.x)/2.0,0-(s->stats.max.y-s->stats.min.y)/2.0,0);
                         stl_rotate_z(s,-elt->rotangle[copy]);
-                        stl_translate_rel(s,elt->x[copy],elt->y[copy],0 );
+                        stl_translate_rel(s,elt->x[copy],elt->y[copy], 0);
                         stl_write_binary_block(s,fp);
+                        if (elt->count > 1) { // Reset object state
+                            stl_translate_rel(s,-elt->x[copy],-elt->y[copy], 0);
+                            stl_rotate_z(s,elt->rotangle[copy]);
+                        }
                     }
                 }
             }
