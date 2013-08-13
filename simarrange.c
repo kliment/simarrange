@@ -485,9 +485,8 @@ int main(int argc, char** argv){
                 LL_PREPEND(ignores, ign);
             }
             firstpassed=1;
-        
-            
-        }
+
+        } // end of the DL_FOREACH(shapes,elt) { loop
 
         LL_FOREACH_SAFE(ignores, ign, igntmp) {
           LL_DELETE(ignores, ign);
