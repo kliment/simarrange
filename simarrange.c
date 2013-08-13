@@ -238,8 +238,7 @@ int dl_count(img_list *l){
     int c=0;
     img_list *elt;
     DL_FOREACH(l,elt){
-        if(elt->plate==-1)
-            ++c;
+        c += elt->count - elt->done;
     }
     return c;
 }
