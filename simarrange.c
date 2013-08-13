@@ -321,8 +321,6 @@ int main(int argc, char** argv){
     int rotstep=10;
     int posstep=5;
     int c;
-    char outdir[512];
-    outdir[0]=0;
     struct arg_int  *aw  = arg_int0("x","width",NULL,              "plate width in mm (default is 200)");
     struct arg_int  *ah  = arg_int0("y","height",NULL,              "plate height in mm (default is 200)");
     struct arg_int  *as  = arg_int0("s","spacing",NULL,              "spacing between parts in mm (default is 1)");
@@ -575,35 +573,34 @@ int main(int argc, char** argv){
         
         if (!adryrun->count)
         {
-            char fn[512];
-            
-            sprintf(fn,"plate%02d.png",plate);
+            char tmpfn[512], outdir[512];
+            char imagefn[1024], stlfn[1024];
             outdir[0]=0;
             if(aodir->count){
                 mkdir(aodir->sval[0],0777);
-                strcpy(outdir,aodir->sval[0]);
-                strcat(outdir,"/");
+                strcpy(imagefn,aodir->sval[0]);
+                strcat(imagefn,"/");
             }
-            strcat(outdir,fn);
+ 
+            sprintf(tmpfn,"plate%02d.png",plate);
+            imagefn[0]=0;
+            strcat(imagefn,outdir);
+            strcat(imagefn,tmpfn);
             cvFlip(img,NULL,0);
-            cvSaveImage(outdir,img,0);
-            sprintf(fn,"plate%02d.stl",plate);
-            outdir[0]=0;
-            if(aodir->count){
-                mkdir(aodir->sval[0],0777);
-                strcpy(outdir,aodir->sval[0]);
-                strcat(outdir,"/");
-            }
-            strcat(outdir,fn);
+            cvSaveImage(imagefn,img,0);
+            sprintf(tmpfn,"plate%02d.stl",plate);
+            stlfn[0]=0;
+            strcat(stlfn,outdir);
+            strcat(stlfn,tmpfn);
             FILE *fp;
             int i;
-            fp = fopen(outdir, "w");
+            fp = fopen(stlfn, "w");
             if(fp == NULL){
-              printf("Could not open output file %s\n",fn);
+              printf("Could not open output file %s\n",stlfn);
               return EXIT_FAILURE;
             }
-            fprintf(fp, "%s", fn);
-            for(i = strlen(fn); i < LABEL_SIZE; i++) putc(0, fp);
+            fprintf(fp, "%s", stlfn);
+            for(i = strlen(stlfn); i < LABEL_SIZE; i++) putc(0, fp);
             fseek(fp, LABEL_SIZE, SEEK_SET);
             
             int totalfacets=0;
@@ -639,7 +636,7 @@ int main(int argc, char** argv){
             stl_file stl_in;
             int last_edges_fixed = 0;
             int iterations = 2;
-            stl_open(&stl_in, fn);
+            stl_open(&stl_in, stlfn);
             stl_check_facets_exact(&stl_in);
             stl_in.stats.facets_w_1_bad_edge = 
                 (stl_in.stats.connected_facets_2_edge -
@@ -671,7 +668,7 @@ int main(int argc, char** argv){
             stl_fix_normal_values(&stl_in);
             stl_verify_neighbors(&stl_in);
             stl_generate_shared_vertices(&stl_in);
-            stl_write_binary(&stl_in, fn,fn);
+            stl_write_binary(&stl_in, stlfn, stlfn);
             stl_close(&stl_in);
 
             if (maxextraplates > 0)
