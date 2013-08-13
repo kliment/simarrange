@@ -580,6 +580,6 @@ int main(int argc, char** argv){
     cvReleaseImage(&rpatch);
     cvReleaseImage(&testfit);
 
-    return 0;
+    return EXIT_SUCCESS;
 }
 
