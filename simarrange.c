@@ -390,8 +390,8 @@ int main(int argc, char** argv){
         cvZero(itmp);
         int firstpassed=0, placed=0;
         DL_FOREACH(shapes,elt) {
-            placed=0;
             for (copy = elt->done; copy < elt->count; copy++) {
+                placed=0;
                 int ignore_this = 0;
                 LL_FOREACH(ignores, ign) {
                     if (strncmp(elt->filename, ign->filename, FILENAME_LEN) == 0) {
