@@ -371,6 +371,7 @@ int main(int argc, char** argv){
     itmp=cvCreateImage(cvSize(2*w,2*h), IPL_DEPTH_8U, 1);
     CvPoint2D32f center=cvPoint2D32f((w),(h));
     
+    unsigned copy;    
     while(dl_count(shapes)){
         printf("Generating plate %d\n",plate);
         string_list *ign, *igntmp;
@@ -390,7 +391,7 @@ int main(int argc, char** argv){
         int firstpassed=0, placed=0;
         DL_FOREACH(shapes,elt) {
             placed=0;
-            for (unsigned copy = elt->done; copy < elt->count; copy++) {
+            for (copy = elt->done; copy < elt->count; copy++) {
                 int ignore_this = 0;
                 LL_FOREACH(ignores, ign) {
                     if (strncmp(elt->filename, ign->filename, FILENAME_LEN) == 0) {
@@ -543,7 +544,7 @@ int main(int argc, char** argv){
             
             int totalfacets=0;
             DL_FOREACH(shapes,elt){
-                for (unsigned copy = 0; copy < elt->done; ++copy)
+                for (copy = 0; copy < elt->done; ++copy)
                 {
                     if(elt->plate[copy]==plate){
                         totalfacets+=elt->stl->stats.number_of_facets;
@@ -552,7 +553,7 @@ int main(int argc, char** argv){
             }
             stl_put_little_int(fp, totalfacets);
             DL_FOREACH(shapes,elt){
-                for (unsigned copy = 0; copy < elt->done; ++copy)
+                for (copy = 0; copy < elt->done; ++copy)
                 {
                     if(elt->plate[copy]==plate){
                         stl_file *s=elt->stl;
