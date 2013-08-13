@@ -24,6 +24,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include <dirent.h>
 #include <argtable2.h>
 #include <ctype.h>
+#include <string.h>
 
 #define FILENAME_LEN 350
 
@@ -243,6 +244,64 @@ int dl_count(img_list *l){
     return c;
 }
 
+int add_files(struct arg_file *arg, int w, int h, img_list **shapes, int withrepeat) {
+    int ifile;
+    char *indir=NULL;
+    struct stat filestat;
+    for(ifile = 0; ifile < arg->count; ifile++){
+        char filename[FILENAME_LEN];
+        strncpy(filename, arg->filename[ifile], FILENAME_LEN);
+        int copies = 1;
+        if (withrepeat) {
+            int filename_len = strlen(filename);
+            int k;
+            for (k = filename_len - 1; k >= 0; --k) {
+                if (filename[k] == '+') {
+                    copies = strtol(filename + k + 1, NULL, 10);
+                    filename[k] = '\0';
+                    break;
+                }
+            }
+        }
+        if( stat(filename, &filestat) == 0 ){
+            if( filestat.st_mode & S_IFREG )
+                add_stl(filename, copies, w, h, shapes);
+            if( filestat.st_mode & S_IFDIR ){
+                indir= filename;
+                DIR *dir;
+                struct dirent *ent;
+                if ((dir = opendir (indir)) != NULL) {
+                    while ((ent = readdir (dir)) != NULL) {
+                        int i;
+                        char d[FILENAME_LEN];
+                        strcpy(d,ent->d_name);
+                        for(i = 0; d[i]; i++)
+                            d[i] = tolower(d[i]);
+                        if(strstr(d,".stl")!=0){
+                            char f[FILENAME_LEN];
+                            f[0]=0;
+                            strcat(f,indir);
+                            strcat(f+strlen(f),"/");
+                            strcat(f+strlen(f),ent->d_name);
+                            
+                            add_stl(f, copies, w, h, shapes);
+                        }
+                            //printf ("%s\n", ent->d_name);
+                    }
+                    closedir (dir);
+                } else {
+                    printf("Input directory not found %s\n",indir);
+                    return EXIT_FAILURE;
+                }        
+            }
+        }else{
+            printf("Could not access %s\n",filename);
+            return EXIT_FAILURE;
+        }
+    }
+    return EXIT_SUCCESS;
+}
+
 int main(int argc, char** argv){
     int w=200,h=200;
     int spacing=1;
@@ -251,7 +310,6 @@ int main(int argc, char** argv){
     int c;
     char outdir[512];
     outdir[0]=0;
-    char *indir=NULL;
     struct arg_int  *aw  = arg_int0("x","width",NULL,              "plate width in mm (default is 200)");
     struct arg_int  *ah  = arg_int0("y","height",NULL,              "plate height in mm (default is 200)");
     struct arg_int  *as  = arg_int0("s","spacing",NULL,              "spacing between parts in mm (default is 1)");
@@ -262,9 +320,10 @@ int main(int argc, char** argv){
     struct arg_lit  *adryrun  = arg_lit0("d","dryrun",              "only do a dry run, computing placement but not producing any output file");
     struct arg_lit  *ahelp  = arg_lit0("h","help",              "display this help message");
     struct arg_str  *aodir = arg_str0("o","outputdir",NULL,  "output directory (default .)");
-    struct arg_file  *ainfile = arg_filen(NULL,NULL,NULL,1,argc+2,  "input file or dir (any number allowed)");
+    struct arg_file  *arepeat = arg_filen("r","repeat",NULL,0,argc+2,  "add a given number of copies of the input file or dir by specifying filepath+count");
+    struct arg_file  *ainfile = arg_filen(NULL,NULL,NULL,0,argc+2,  "input file or dir (any number allowed)");
     struct arg_end  *end      = arg_end(20);
-    void* argtable[] = {aw,ah,as,ar,ap,ac,acorigin,aodir,ainfile,adryrun,ahelp,end};
+    void* argtable[] = {aw,ah,as,ar,ap,ac,acorigin,aodir,ainfile,arepeat,adryrun,ahelp,end};
     
     int nerrors;
     nerrors = arg_parse(argc,argv,argtable);
@@ -281,7 +340,10 @@ int main(int argc, char** argv){
         arg_print_errors(stdout,end,argv[0]);
         return EXIT_FAILURE;
         }
-    
+   if (arepeat->count == 0 && ainfile->count == 0) {
+        printf("%s: please specify one or more input file or directory\n", argv[0]);
+        return EXIT_FAILURE;
+    }
     
     if(aw->count){
         w=aw->ival[0];
@@ -310,47 +372,16 @@ int main(int argc, char** argv){
     img_list *shapes=NULL;
     img_list *curplate=NULL;
     int platecount=0;
-    struct stat filestat;
+    int ret;
     if(ainfile->count){
-        int ifile;
-        for(ifile=0;ifile<ainfile->count;ifile++){
-            if( stat(ainfile->filename[ifile],&filestat) == 0 ){
-                if( filestat.st_mode & S_IFREG )
-                    add_stl((char *)(ainfile->filename[ifile]),1, w, h, &shapes);
-                if( filestat.st_mode & S_IFDIR ){
-                    indir=(char *)(ainfile->filename[ifile]);
-                    DIR *dir;
-                    struct dirent *ent;
-                    if ((dir = opendir (indir)) != NULL) {
-                        while ((ent = readdir (dir)) != NULL) {
-                            int i;
-                            char d[FILENAME_LEN];
-                            strcpy(d,ent->d_name);
-                            for(i = 0; d[i]; i++)
-                                d[i] = tolower(d[i]);
-                            if(strstr(d,".stl")!=0){
-                                char f[FILENAME_LEN];
-                                f[0]=0;
-                                strcat(f,indir);
-                                strcat(f+strlen(f),"/");
-                                strcat(f+strlen(f),ent->d_name);
-                                
-                                add_stl(f, 1, w, h, &shapes);
-                            }
-                                //printf ("%s\n", ent->d_name);
-                        }
-                        closedir (dir);
-                    } else {
-                        printf("Input directory not found %s\n",indir);
-                        return EXIT_FAILURE;
-                    }        
-                }
-            }else{
-                printf("Could not access %s\n",ainfile->filename[ifile]);
-                return EXIT_FAILURE;
-            }
-            
-        }
+        ret = add_files(ainfile, w, h, &shapes, 0);
+        if (ret != EXIT_SUCCESS)
+            return ret;
+    }
+    if(arepeat->count){
+        ret = add_files(arepeat, w, h, &shapes, 1);
+        if (ret != EXIT_SUCCESS)
+            return ret;
     }
     
     DL_SORT(shapes, areacmp);
