@@ -516,7 +516,10 @@ int main(int argc, char** argv){
                     platecount++;
                 }else{
                     printf("SKIP: %s skipped for this plate\n",elt->filename);
-                    firstpassed=1;
+                    if (!firstpassed) {
+                        printf("Could not fit this file as the first item of the plate in any tested orientation! It might be too large for the print area.\n");
+                        return EXIT_FAILURE;
+                    }
                     break;
                 }
                 firstpassed=1;
