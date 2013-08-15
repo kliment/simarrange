@@ -392,6 +392,7 @@ int main(int argc, char** argv){
     int spacing=1;
     int rotstep=10;
     int posstep=5;
+    int quiet=0;
     int c;
     struct arg_int  *aw  = arg_int0("x","width",NULL,              "plate width in mm (default is 200)");
     struct arg_int  *ah  = arg_int0("y","height",NULL,              "plate height in mm (default is 200)");
@@ -403,11 +404,12 @@ int main(int argc, char** argv){
     struct arg_int  *athreads  = arg_int0("j","threads",NULL,         "number of threads (default is to use as much as possible, set to 1 to disable multithreading)");
     struct arg_lit  *adryrun  = arg_lit0("d","dryrun",              "only do a dry run, computing placement but not producing any output file");
     struct arg_lit  *ahelp  = arg_lit0("h","help",              "display this help message");
+    struct arg_lit  *aquiet  = arg_lit0("q","quiet",              "silence information messages");
     struct arg_str  *aodir = arg_str0("o","outputdir",NULL,  "output directory (default .)");
     struct arg_file  *arepeat = arg_filen(NULL,"repeat",NULL,0,argc+2,  "add a given number of copies of the input file or dir by specifying filepath+count");
     struct arg_file  *ainfile = arg_filen(NULL,NULL,NULL,0,argc+2,  "input file or dir (any number allowed)");
     struct arg_end  *end      = arg_end(20);
-    void* argtable[] = {aw,ah,as,ar,ap,ac,acorigin,aodir,ainfile,arepeat,athreads,adryrun,ahelp,end};
+    void* argtable[] = {aw,ah,as,ar,ap,ac,acorigin,aodir,ainfile,arepeat,athreads,adryrun,aquiet,ahelp,end};
     
     int nerrors;
     nerrors = arg_parse(argc,argv,argtable);
@@ -447,7 +449,10 @@ int main(int argc, char** argv){
     if(ap->count){
         posstep=ap->ival[0];
     }
-    if(adryrun->count){
+    if(aquiet->count){
+        quiet = 1;
+    }
+    if(adryrun->count && !quiet){
         printf("Running in dry run mode (no output file will be produced)\n");
     }
     if(athreads->count) {
@@ -497,7 +502,7 @@ int main(int argc, char** argv){
     
     unsigned copy;    
     while(dl_count(shapes)){
-        printf("Generating plate %d\n",plate);
+        if (!quiet) printf("Generating plate %d\n",plate);
         cvZero(img);
         cvLine(img, cvPoint(0,0), cvPoint(w-1,0), cvScalarAll(127), 1, 8, 0);
         cvLine(img, cvPoint(w-1,0), cvPoint(w-1,h-1), cvScalarAll(127), 1, 8, 0);
@@ -562,7 +567,7 @@ int main(int argc, char** argv){
                     }
                 }
                 if(placed){
-                    printf("File: %s minx: %d, miny: %d, minrot: %d\n",elt->filename, minxpos, minypos, minrotangle);
+                    if (!quiet) printf("File: %s minx: %d, miny: %d, minrot: %d\n",elt->filename, minxpos, minypos, minrotangle);
                     cvWarpAffine(elt->image,rpatch,cv2DRotationMatrix(center, minrotangle, 1.0, rot),CV_INTER_LINEAR+CV_WARP_FILL_OUTLIERS, cvScalarAll(0) );
                     cvSetImageROI(rpatch, cvRect(w-minxpos,h-minypos,w,h));
                     cvAdd(rpatch,img,testfit,NULL);
@@ -575,7 +580,7 @@ int main(int argc, char** argv){
                     elt->done++;
                     platecount++;
                 }else{
-                    printf("SKIP: %s skipped for this plate\n",elt->filename);
+                    if (!quiet) printf("SKIP: %s skipped for this plate\n",elt->filename);
                     if (!firstpassed) {
                         printf("Could not fit this file as the first item of the plate in any tested orientation! It might be too large for the print area.\n");
                         return EXIT_FAILURE;
@@ -606,7 +611,7 @@ int main(int argc, char** argv){
             }
         }
         if (maxextraplates > 0) {
-            printf("Making %d duplicates of plate %d\n", maxextraplates, plate);
+            if (!quiet) printf("Making %d duplicates of plate %d\n", maxextraplates, plate);
             DL_FOREACH(shapes,elt){
                 elt->done += elt->countinplate * maxextraplates;
             }
