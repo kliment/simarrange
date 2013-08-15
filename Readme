@@ -26,6 +26,9 @@ Minimal spacing between parts, in mm, default 1, must be a positive integer
 rotational granularity of search space in degrees, default 10 (reduce for tighter, slower packing)
 -p --posstep
 positional granularity of search space in mm, default 5 (reduce for tighter, slower packing)
+--repeat PATH+N
+add N copies of the file at PATH (or if path is a directory, of the files in
+that directory) to the plate job
 -o --outputdir
 output directory, default "."
 -d --dryrun
