@@ -369,7 +369,7 @@ int search(int rotangle, int posstep, int w, int h, int firstpassed, int middle,
                         #pragma omp critical
                         #endif
                         {
-                            if (xpos<*minxpos && ypos<*minypos)
+                            if (xpos+ypos < (*minxpos+*minypos))
                             {
                                 *minxpos=xpos;
                                 *minypos=ypos;
