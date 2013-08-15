@@ -428,12 +428,12 @@ int main(int argc, char** argv){
                 placed=0;
                 //printf("File: %s\n",elt->filename);
                 cvCopy(img, testfit, NULL);
-                int xpos=1, ypos=1, rotangle=0, minxpos=w-1, minypos=h-1, minrotangle=0;
+                int xpos=1, ypos=1, rotangle=0, minxpos=w-1, minypos=h-1, minrotangle=0, mincentricords=max(w-1,h-1)*max(w-1,h-1)/(posstep*posstep);
                 cvDilate(elt->image,itmp,NULL,spacing);
                 for(rotangle=0;rotangle<360;rotangle+=rotstep){
                     cvWarpAffine(itmp,rpatch,cv2DRotationMatrix(center, rotangle, 1.0, rot),CV_INTER_LINEAR+CV_WARP_FILL_OUTLIERS, cvScalarAll(0) );
                     if(firstpassed && acorigin->count){
-                        int centricords=0,mincentricords=max(w-1,h-1)*max(w-1,h-1)/(posstep*posstep);
+                        int centricords=0;
                         for(centricords=0;centricords<mincentricords;centricords++){
                             xpos=ypos=0;
                             sqspiral(centricords, &xpos, &ypos);
