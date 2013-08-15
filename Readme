@@ -30,7 +30,10 @@ positional granularity of search space in mm, default 5 (reduce for tighter, slo
 output directory, default "."
 -d --dryrun
 only do a dry run, computing placement but not producing any output file
-
+-j --threads
+How many threads to use. Default is as many as possible, set to 1 for single-threaded operation
+-q --quiet
+Output as little noise as possible on stdout
 
 Examples
 
