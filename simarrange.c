@@ -27,6 +27,11 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include <string.h>
 #include <limits.h>
 
+
+//#define PARALLEL
+#if defined PARALLEL
+#include <omp.h>
+#endif
 #define FILENAME_LEN 350
 
 inline int max ( int a, int b ) { return a > b ? a : b; }
@@ -310,6 +315,77 @@ int add_files(struct arg_file *arg, int w, int h, img_list **shapes, int withrep
     return EXIT_SUCCESS;
 }
 
+
+
+int search(int rotangle, int posstep, int w, int h, int firstpassed, int middle, int *minxpos, int *minypos, int *minrotangle, int *mincentricords,CvPoint2D32f center, IplImage *itmp, IplImage *rpatch, IplImage *img,IplImage *testfit,CvMat *rot){
+    int xpos,ypos,placed=0;
+    cvWarpAffine(itmp,rpatch,cv2DRotationMatrix(center, rotangle, 1.0, rot),CV_INTER_LINEAR+CV_WARP_FILL_OUTLIERS, cvScalarAll(0) );
+    if(firstpassed && middle){
+        int centricords=0;
+        for(centricords=0;centricords<*mincentricords;centricords++){
+            xpos=ypos=0;
+            sqspiral(centricords, &xpos, &ypos);
+            xpos*=posstep;
+            ypos*=posstep;
+            
+            xpos=max(0,min(xpos+w/2,w-1));
+            ypos=max(0,min(ypos+h/2,h-1));
+            cvSetImageROI(rpatch, cvRect(w-xpos,h-ypos,w,h));
+            cvAnd(rpatch, img, testfit, NULL);
+            
+            if(!cvCountNonZero(testfit)){
+                int prec=cvCountNonZero(img);
+                cvAdd(rpatch, img, testfit, NULL);
+                if(prec!=cvCountNonZero(testfit)){
+                    #if defined PARALLEL
+                    #pragma omp critical
+                    #endif
+                    {
+                        if(centricords<*mincentricords){
+                            *minxpos=xpos;
+                            *minypos=ypos;
+                            *minrotangle=rotangle;
+                            *mincentricords=centricords;
+                            placed=1;
+                        }
+                    }
+
+                    
+                }
+            }
+            cvResetImageROI(rpatch);
+        }
+    }else{
+        for(ypos=1;ypos<*minypos;ypos+=posstep){
+            for(xpos=1;xpos<*minxpos;xpos+=posstep){
+                cvSetImageROI(rpatch, cvRect(w-xpos,h-ypos,w,h));
+                cvAnd(rpatch, img, testfit, NULL);
+                if(!cvCountNonZero(testfit)){
+                    int prec=cvCountNonZero(img);
+                    cvAdd(rpatch, img, testfit, NULL);
+                    if(prec!=cvCountNonZero(testfit)){
+                        #if defined PARALLEL
+                        #pragma omp critical
+                        #endif
+                        {
+                            if (xpos<*minxpos && ypos<*minypos)
+                            {
+                                *minxpos=xpos;
+                                *minypos=ypos;
+                                *minrotangle=rotangle;
+                                placed=1;
+                            }
+                        }
+                    }
+                }
+                cvResetImageROI(rpatch);
+                
+            }
+        }
+    }
+    return placed;
+}
+
 int main(int argc, char** argv){
     int w=200,h=200;
     int spacing=1;
@@ -430,54 +506,26 @@ int main(int argc, char** argv){
                 cvCopy(img, testfit, NULL);
                 int xpos=1, ypos=1, rotangle=0, minxpos=w-1, minypos=h-1, minrotangle=0, mincentricords=max(w-1,h-1)*max(w-1,h-1)/(posstep*posstep);
                 cvDilate(elt->image,itmp,NULL,spacing);
+                #ifdef PARALLEL
+                #pragma omp parallel for
                 for(rotangle=0;rotangle<360;rotangle+=rotstep){
-                    cvWarpAffine(itmp,rpatch,cv2DRotationMatrix(center, rotangle, 1.0, rot),CV_INTER_LINEAR+CV_WARP_FILL_OUTLIERS, cvScalarAll(0) );
-                    if(firstpassed && acorigin->count){
-                        int centricords=0;
-                        for(centricords=0;centricords<mincentricords;centricords++){
-                            xpos=ypos=0;
-                            sqspiral(centricords, &xpos, &ypos);
-                            xpos*=posstep;
-                            ypos*=posstep;
-                            
-                            xpos=max(0,min(xpos+w/2,w-1));
-                            ypos=max(0,min(ypos+h/2,h-1));
-                            cvSetImageROI(rpatch, cvRect(w-xpos,h-ypos,w,h));
-                            cvAnd(rpatch, img, testfit, NULL);
-                            if(!cvCountNonZero(testfit)){
-                                int prec=cvCountNonZero(img);
-                                cvAdd(rpatch, img, testfit, NULL);
-                                if(prec!=cvCountNonZero(testfit)){
-                                    minxpos=xpos;
-                                    minypos=ypos;
-                                    minrotangle=rotangle;
-                                    mincentricords=centricords;
-                                    placed=1;
-                                }
-                            }
-                            cvResetImageROI(rpatch);
-                        }
-                    }else{
-                        for(ypos=1;ypos<minypos;ypos+=posstep){
-                            for(xpos=1;xpos<minxpos;xpos+=posstep){
-                                cvSetImageROI(rpatch, cvRect(w-xpos,h-ypos,w,h));
-                                cvAnd(rpatch, img, testfit, NULL);
-                                if(!cvCountNonZero(testfit)){
-                                    int prec=cvCountNonZero(img);
-                                    cvAdd(rpatch, img, testfit, NULL);
-                                    if(prec!=cvCountNonZero(testfit)){
-                                        minxpos=xpos;
-                                        minypos=ypos;
-                                        minrotangle=rotangle;
-                                        placed=1;
-                                    }
-                                }
-                                cvResetImageROI(rpatch);
-                                
-                            }
-                        }
-                    }
+                    //rpatch,rot,testfit
+                    CvMat* rot = NULL;
+                    rot=cvCreateMat(2,3, CV_32FC1);
+                    IplImage* rpatch = NULL;
+                    rpatch=cvCreateImage(cvSize((w*2),(h*2)), IPL_DEPTH_8U, 1);
+                    IplImage* testfit = NULL;
+                    testfit=cvCreateImage(cvSize(w,h), IPL_DEPTH_8U, 1);
+                    placed|=search(rotangle, posstep, w, h, firstpassed, acorigin->count, &minxpos, &minypos, &minrotangle, &mincentricords,center, itmp, rpatch, img,testfit,rot);
+                    cvReleaseImage(&testfit);
+                    cvReleaseImage(&rpatch);
+                    cvReleaseMat(&rot);
                 }
+                #else
+                for(rotangle=0;rotangle<360;rotangle+=rotstep){
+                    placed|=search(rotangle, posstep, w, h, firstpassed, acorigin->count, &minxpos, &minypos, &minrotangle, &mincentricords,center, itmp, rpatch, img,testfit,rot);
+                }
+                #endif
                 if(!firstpassed && acorigin->count){
                     int centricords=0;
                     for(centricords=0;centricords<max(w-1,h-1)*max(w-1,h-1);centricords++){
