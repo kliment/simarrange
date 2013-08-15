@@ -26,6 +26,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include <ctype.h>
 #include <string.h>
 #include <limits.h>
+#include <omp.h>
 
 
 //#define PARALLEL
@@ -399,13 +400,14 @@ int main(int argc, char** argv){
     struct arg_int  *ap  = arg_int0("p","posstep",NULL,              "positional step when searching (default 5mm)");
     struct arg_lit  *ac  = arg_lit0("c","circle",              "circular print area with diameter given by -x");
     struct arg_lit  *acorigin  = arg_lit0("m","middle",              "place objects from middle of build area out");
+    struct arg_int  *athreads  = arg_int0("j","threads",NULL,         "number of threads (default is to use as much as possible, set to 1 to disable multithreading)");
     struct arg_lit  *adryrun  = arg_lit0("d","dryrun",              "only do a dry run, computing placement but not producing any output file");
     struct arg_lit  *ahelp  = arg_lit0("h","help",              "display this help message");
     struct arg_str  *aodir = arg_str0("o","outputdir",NULL,  "output directory (default .)");
     struct arg_file  *arepeat = arg_filen(NULL,"repeat",NULL,0,argc+2,  "add a given number of copies of the input file or dir by specifying filepath+count");
     struct arg_file  *ainfile = arg_filen(NULL,NULL,NULL,0,argc+2,  "input file or dir (any number allowed)");
     struct arg_end  *end      = arg_end(20);
-    void* argtable[] = {aw,ah,as,ar,ap,ac,acorigin,aodir,ainfile,arepeat,adryrun,ahelp,end};
+    void* argtable[] = {aw,ah,as,ar,ap,ac,acorigin,aodir,ainfile,arepeat,athreads,adryrun,ahelp,end};
     
     int nerrors;
     nerrors = arg_parse(argc,argv,argtable);
@@ -447,6 +449,16 @@ int main(int argc, char** argv){
     }
     if(adryrun->count){
         printf("Running in dry run mode (no output file will be produced)\n");
+    }
+    if(athreads->count) {
+        if (athreads->ival[0] > 0){
+            int numthreads = athreads->ival[0];
+            omp_set_dynamic(0);
+            omp_set_num_threads(numthreads);
+        } else {
+            printf("%s: number of threads cannot be lower than 0\n", argv[0]);
+            return EXIT_FAILURE;
+        }
     }
     
     
