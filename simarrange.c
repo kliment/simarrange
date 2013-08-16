@@ -304,12 +304,12 @@ int add_files(struct arg_file *arg, int w, int h, img_list **shapes, int withrep
                     }
                     closedir (dir);
                 } else {
-                    printf("Input directory not found %s\n",indir);
+                    fprintf(stderr, "Input directory not found %s\n",indir);
                     return EXIT_FAILURE;
                 }        
             }
         }else{
-            printf("Could not access %s\n",filename);
+            fprintf(stderr, "Could not access %s\n",filename);
             return EXIT_FAILURE;
         }
     }
@@ -433,7 +433,7 @@ int main(int argc, char** argv){
         return EXIT_FAILURE;
         }
    if (arepeat->count == 0 && ainfile->count == 0) {
-        printf("%s: please specify one or more input file or directory\n", argv[0]);
+        fprintf(stderr, "%s: please specify one or more input file or directory\n", argv[0]);
         return EXIT_FAILURE;
     }
     
@@ -468,7 +468,7 @@ int main(int argc, char** argv){
             omp_set_dynamic(0);
             omp_set_num_threads(numthreads);
         } else {
-            printf("%s: number of threads cannot be lower than 0\n", argv[0]);
+            fprintf(stderr, "%s: number of threads cannot be lower than 0\n", argv[0]);
             return EXIT_FAILURE;
         }
     }
@@ -590,7 +590,7 @@ int main(int argc, char** argv){
                 }else{
                     if (!quiet) printf("SKIP: %s skipped for this plate\n",elt->filename);
                     if (!firstpassed) {
-                        printf("Could not fit this file as the first item of the plate in any tested orientation! It might be too large for the print area.\n");
+                        fprintf(stderr, "Could not fit this file as the first item of the plate in any tested orientation! It might be too large for the print area.\n");
                         return EXIT_FAILURE;
                     }
                     break;
@@ -600,7 +600,7 @@ int main(int argc, char** argv){
         } // end of the DL_FOREACH(shapes,elt) { loop
 
         if(!platecount){
-            printf("The files skipped in the last stage do not fit on plate in any tested orientation! They might be too large for the print area.\n");
+            fprintf(stderr, "The files skipped in the last stage do not fit on plate in any tested orientation! They might be too large for the print area.\n");
             return EXIT_FAILURE;
         }
 
@@ -650,7 +650,7 @@ int main(int argc, char** argv){
             int i;
             fp = fopen(stlfn, "w");
             if(fp == NULL){
-              printf("Could not open output file %s\n",stlfn);
+              fprintf(stderr, "Could not open output file %s\n",stlfn);
               return EXIT_FAILURE;
             }
             fprintf(fp, "%s", stlfn);
