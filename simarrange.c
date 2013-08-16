@@ -318,7 +318,7 @@ int add_files(struct arg_file *arg, int w, int h, img_list **shapes, int withrep
 
 
 
-int search(int rotangle, int posstep, int w, int h, int firstpassed, int middle, int *minxpos, int *minypos, int *minrotangle, int *mincentricords,CvPoint2D32f center, IplImage *itmp, IplImage *rpatch, IplImage *img,IplImage *testfit,CvMat *rot){
+int search(int rotangle, int posstep, int w, int h, int firstpassed, int middle, int *minxpos, int *minypos, int *minrotangle, int *mincentricords,CvPoint2D32f center, IplImage *itmp, IplImage *rpatch, IplImage *grpatch, IplImage *img,IplImage *testfit,CvMat *rot){
     int xpos,ypos,placed=0;
     cvWarpAffine(itmp,rpatch,cv2DRotationMatrix(center, rotangle, 1.0, rot),CV_INTER_LINEAR+CV_WARP_FILL_OUTLIERS, cvScalarAll(0) );
     if(firstpassed && middle){
@@ -347,6 +347,9 @@ int search(int rotangle, int posstep, int w, int h, int firstpassed, int middle,
                             *minypos=ypos;
                             *minrotangle=rotangle;
                             *mincentricords=centricords;
+                            cvResetImageROI(rpatch);
+                            if(grpatch)
+                                cvCopy(rpatch,grpatch,NULL);
                             placed=1;
                         }
                     }
@@ -374,6 +377,9 @@ int search(int rotangle, int posstep, int w, int h, int firstpassed, int middle,
                                 *minxpos=xpos;
                                 *minypos=ypos;
                                 *minrotangle=rotangle;
+                                cvResetImageROI(rpatch);
+                                if(grpatch)
+                                    cvCopy(rpatch,grpatch,NULL);
                                 placed=1;
                             }
                         }
@@ -537,18 +543,18 @@ int main(int argc, char** argv){
                     //rpatch,rot,testfit
                     CvMat* rot = NULL;
                     rot=cvCreateMat(2,3, CV_32FC1);
-                    IplImage* rpatch = NULL;
-                    rpatch=cvCreateImage(cvSize((w*2),(h*2)), IPL_DEPTH_8U, 1);
+                    IplImage* prpatch = NULL;
+                    prpatch=cvCreateImage(cvSize((w*2),(h*2)), IPL_DEPTH_8U, 1);
                     IplImage* testfit = NULL;
                     testfit=cvCreateImage(cvSize(w,h), IPL_DEPTH_8U, 1);
-                    placed|=search(rotangle, posstep, w, h, firstpassed, acorigin->count, &minxpos, &minypos, &minrotangle, &mincentricords,center, itmp, rpatch, img,testfit,rot);
+                    placed|=search(rotangle, posstep, w, h, firstpassed, acorigin->count, &minxpos, &minypos, &minrotangle, &mincentricords,center, itmp, prpatch, rpatch, img,testfit,rot);
                     cvReleaseImage(&testfit);
-                    cvReleaseImage(&rpatch);
+                    cvReleaseImage(&prpatch);
                     cvReleaseMat(&rot);
                 }
                 #else
                 for(rotangle=0;rotangle<360;rotangle+=rotstep){
-                    placed|=search(rotangle, posstep, w, h, firstpassed, acorigin->count, &minxpos, &minypos, &minrotangle, &mincentricords,center, itmp, rpatch, img,testfit,rot);
+                    placed|=search(rotangle, posstep, w, h, firstpassed, acorigin->count, &minxpos, &minypos, &minrotangle, &mincentricords,center, itmp, rpatch, NULL, img,testfit,rot);
                 }
                 #endif
                 if(!firstpassed && acorigin->count){
