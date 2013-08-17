@@ -281,6 +281,7 @@ int add_files(struct arg_file *arg, int w, int h, img_list **shapes, int withrep
             if( filestat.st_mode & S_IFREG ){
                 char d[FILENAME_LEN];
                 strcpy(d,filename);
+                int i;
                 for(i = 0; d[i]; i++)
                     d[i] = tolower(d[i]);
                 if(strstr(d,".stl")!=0){
