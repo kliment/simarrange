@@ -278,8 +278,15 @@ int add_files(struct arg_file *arg, int w, int h, img_list **shapes, int withrep
             }
         }
         if( stat(filename, &filestat) == 0 ){
-            if( filestat.st_mode & S_IFREG )
-                add_stl(filename, copies, w, h, shapes);
+            if( filestat.st_mode & S_IFREG ){
+                char d[FILENAME_LEN];
+                strcpy(d,filename);
+                for(i = 0; d[i]; i++)
+                    d[i] = tolower(d[i]);
+                if(strstr(d,".stl")!=0){
+                    add_stl(filename, copies, w, h, shapes);
+                }
+            }
             if( filestat.st_mode & S_IFDIR ){
                 indir= filename;
                 DIR *dir;
