@@ -56,7 +56,7 @@ Convert all files from the directory "input" into plates of size 200x200mm with 
 
 Convert all files from the directory "input" into plates of size 200x200mm, packing from the middle
 
-./sa input+10
+./sa --repeat input+10
 
 Convert all files from the directory "input" into plates of size 200x200mm,
 with 10 copies of each object
