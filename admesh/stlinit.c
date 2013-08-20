@@ -85,6 +85,7 @@ stl_initialize(stl_file *stl, char *file)
   unsigned char  chtest[128];
   int            num_lines = 1;
   char           *error_msg;
+  int retval;
 
   stl->stats.degenerate_facets = 0;
   stl->stats.edges_fixed  = 0;
@@ -121,7 +122,7 @@ stl_initialize(stl_file *stl, char *file)
   
   /* Check for binary or ASCII file */
   fseek(stl->fp, HEADER_SIZE, SEEK_SET);
-  fread(chtest, sizeof(chtest), 1, stl->fp);
+  retval=fread(chtest, sizeof(chtest), 1, stl->fp);
   stl->stats.type = ascii;
   for(i = 0; i < sizeof(chtest); i++)
     {
@@ -147,7 +148,7 @@ stl_initialize(stl_file *stl, char *file)
       num_facets = (file_size - HEADER_SIZE) / SIZEOF_STL_FACET;
 
       /* Read the header */
-      fread(stl->stats.header, LABEL_SIZE, 1, stl->fp);
+      retval=fread(stl->stats.header, LABEL_SIZE, 1, stl->fp);
       stl->stats.header[80] = '\0';
 
       /* Read the int following the header.  This should contain # of facets */
@@ -240,7 +241,7 @@ stl_read(stl_file *stl, int first_facet, int first)
   float diff_y;
   float diff_z;
   float max_diff;
-
+  int retval;
   
   if(stl->stats.type == binary)
     {
@@ -276,17 +277,17 @@ stl_read(stl_file *stl, int first_facet, int first)
       else
 	/* Read a single facet from an ASCII .STL file */
 	{
-      	  fscanf(stl->fp, "%*s %*s %f %f %f\n", &facet.normal.x,
+      	  retval=fscanf(stl->fp, "%*s %*s %f %f %f\n", &facet.normal.x,
 		 &facet.normal.y, &facet.normal.z);
-	  fscanf(stl->fp, "%*s %*s");
-	  fscanf(stl->fp, "%*s %f %f %f\n", &facet.vertex[0].x,
+	  retval=fscanf(stl->fp, "%*s %*s");
+	  retval=fscanf(stl->fp, "%*s %f %f %f\n", &facet.vertex[0].x,
 		 &facet.vertex[0].y,  &facet.vertex[0].z);
-	  fscanf(stl->fp, "%*s %f %f %f\n", &facet.vertex[1].x,
+	  retval=fscanf(stl->fp, "%*s %f %f %f\n", &facet.vertex[1].x,
 		 &facet.vertex[1].y,  &facet.vertex[1].z);
-	  fscanf(stl->fp, "%*s %f %f %f\n", &facet.vertex[2].x,
+	  retval=fscanf(stl->fp, "%*s %f %f %f\n", &facet.vertex[2].x,
 		 &facet.vertex[2].y,  &facet.vertex[2].z);
-	  fscanf(stl->fp, "%*s");
-	  fscanf(stl->fp, "%*s");
+	  retval=fscanf(stl->fp, "%*s");
+	  retval=fscanf(stl->fp, "%*s");
 	}
       /* Write the facet into memory. */
       stl->facet_start[i] = facet;
