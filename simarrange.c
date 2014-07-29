@@ -104,93 +104,6 @@ void sqspiral(int n, int *i, int *j)
   }
 }
 
-static void
-stl_put_little_int(FILE *fp, int value_in)
-{
-  int new_value;
-  union 
-    {
-      int  int_value;
-      char char_value[4];
-    } value;
-  
-  value.int_value = value_in;
-  
-  new_value  = value.char_value[0] & 0xFF;
-  new_value |= (value.char_value[1] & 0xFF) << 0x08;
-  new_value |= (value.char_value[2] & 0xFF) << 0x10;
-  new_value |= (value.char_value[3] & 0xFF) << 0x18;
-  fwrite(&new_value, sizeof(int), 1, fp);
-}
-
-static void
-stl_put_little_float(FILE *fp, float value_in)
-{
-  int new_value;
-  union 
-    {
-      float float_value;
-      char  char_value[4];
-    } value;
-  
-  value.float_value = value_in;
-  
-  new_value  = value.char_value[0] & 0xFF;
-  new_value |= (value.char_value[1] & 0xFF) << 0x08;
-  new_value |= (value.char_value[2] & 0xFF) << 0x10;
-  new_value |= (value.char_value[3] & 0xFF) << 0x18;
-  fwrite(&new_value, sizeof(int), 1, fp);
-}
-
-
-void
-stl_write_binary_block(stl_file *stl, FILE *fp)
-{
-  int i;
-  for(i = 0; i < stl->stats.number_of_facets; i++)
-    {
-      stl_put_little_float(fp, stl->facet_start[i].normal.x);
-      stl_put_little_float(fp, stl->facet_start[i].normal.y);
-      stl_put_little_float(fp, stl->facet_start[i].normal.z);
-      stl_put_little_float(fp, stl->facet_start[i].vertex[0].x);
-      stl_put_little_float(fp, stl->facet_start[i].vertex[0].y);
-      stl_put_little_float(fp, stl->facet_start[i].vertex[0].z);
-      stl_put_little_float(fp, stl->facet_start[i].vertex[1].x);
-      stl_put_little_float(fp, stl->facet_start[i].vertex[1].y);
-      stl_put_little_float(fp, stl->facet_start[i].vertex[1].z);
-      stl_put_little_float(fp, stl->facet_start[i].vertex[2].x);
-      stl_put_little_float(fp, stl->facet_start[i].vertex[2].y);
-      stl_put_little_float(fp, stl->facet_start[i].vertex[2].z);
-      fputc(stl->facet_start[i].extra[0], fp);
-      fputc(stl->facet_start[i].extra[1], fp);
-    }
-}
-
-void
-stl_translate_rel(stl_file *stl, float x, float y, float z)
-{
-  int i;
-  int j;
-  
-  for(i = 0; i < stl->stats.number_of_facets; i++)
-    {
-      for(j = 0; j < 3; j++)
-	{
-	  stl->facet_start[i].vertex[j].x += x;
-	  stl->facet_start[i].vertex[j].y += y;
-	  stl->facet_start[i].vertex[j].z += z;
-	}
-    }
-  stl->stats.max.x += x;
-  stl->stats.max.y += y;
-  stl->stats.max.z += z;
-  stl->stats.min.x += x;
-  stl->stats.min.y += y;
-  stl->stats.min.z += z;
-}
-
-
-
 void add_stl(char *filename, int count, int width, int height, img_list **shapes){
     img_list *elt;
     DL_FOREACH(*shapes,elt) {
@@ -206,6 +119,7 @@ void add_stl(char *filename, int count, int width, int height, img_list **shapes
     stl_file *s=(stl_file *)malloc(sizeof(stl_file));
     memset(s,0,sizeof(stl_file));
     stl_open(s,filename);
+    stl_exit_on_error(s);
     stl_check_facets_exact(s);
     s->stats.facets_w_1_bad_edge = (s->stats.connected_facets_2_edge - s->stats.connected_facets_3_edge);
     s->stats.facets_w_2_bad_edge = (s->stats.connected_facets_1_edge - s->stats.connected_facets_2_edge);
@@ -690,10 +604,10 @@ int main(int argc, char** argv){
                         stl_file *s=elt->stl;
                         stl_translate(s,0-(s->stats.max.x-s->stats.min.x)/2.0,0-(s->stats.max.y-s->stats.min.y)/2.0,0);
                         stl_rotate_z(s,-elt->rotangle[copy]);
-                        stl_translate_rel(s,elt->x[copy],elt->y[copy], 0);
+                        stl_translate_relative(s,elt->x[copy],elt->y[copy], 0);
                         stl_write_binary_block(s,fp);
                         if (elt->count > 1) { // Reset object state
-                            stl_translate_rel(s,-elt->x[copy],-elt->y[copy], 0);
+                            stl_translate_relative(s,-elt->x[copy],-elt->y[copy], 0);
                             stl_rotate_z(s,elt->rotangle[copy]);
                         }
                     }
@@ -705,6 +619,7 @@ int main(int argc, char** argv){
             int last_edges_fixed = 0;
             int iterations = 2;
             stl_open(&stl_in, stlfn);
+            stl_exit_on_error(&stl_in);
             stl_check_facets_exact(&stl_in);
             stl_in.stats.facets_w_1_bad_edge = 
                 (stl_in.stats.connected_facets_2_edge -
@@ -737,6 +652,7 @@ int main(int argc, char** argv){
             stl_verify_neighbors(&stl_in);
             stl_generate_shared_vertices(&stl_in);
             stl_write_binary(&stl_in, stlfn, stlfn);
+            stl_exit_on_error(&stl_in);
 
             if (maxextraplates > 0)
             {
@@ -753,6 +669,7 @@ int main(int argc, char** argv){
                     strcat(stlfn,outdir);
                     strcat(stlfn,tmpfn);
                     stl_write_binary(&stl_in, stlfn, stlfn);
+                    stl_exit_on_error(&stl_in);
                 }
             }
             stl_close(&stl_in);
