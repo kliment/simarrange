@@ -37,6 +37,8 @@ only do a dry run, computing placement but not producing any output file
 How many threads to use. Default is as many as possible, set to 1 for single-threaded operation
 -q --quiet
 Output as little noise as possible on stdout
+-l --limit
+Stop after this many plates are filled
 
 Examples
 

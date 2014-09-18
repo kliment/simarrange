@@ -322,6 +322,7 @@ int main(int argc, char** argv){
     int posstep=5;
     int quiet=0;
     int c;
+    int maxplates=0;
     struct arg_int  *aw  = arg_int0("x","width",NULL,              "plate width in mm (default is 200)");
     struct arg_int  *ah  = arg_int0("y","height",NULL,              "plate height in mm (default is 200)");
     struct arg_int  *as  = arg_int0("s","spacing",NULL,              "spacing between parts in mm (default is 1)");
@@ -335,6 +336,7 @@ int main(int argc, char** argv){
     struct arg_lit  *adryrun  = arg_lit0("d","dryrun",              "only do a dry run, computing placement but not producing any output file");
     struct arg_lit  *ahelp  = arg_lit0("h","help",              "display this help message");
     struct arg_lit  *aquiet  = arg_lit0("q","quiet",              "silence information messages");
+    struct arg_int  *alimit  = arg_int0("l","limit",NULL,              "maximum number of plates to fill, stop after this number of plates is done");
     struct arg_str  *aodir = arg_str0("o","outputdir",NULL,  "output directory (default .)");
     struct arg_file  *arepeat = arg_filen("n","repeat",NULL,0,argc+2,  "add a given number of copies of the input file or dir by specifying filepath+count");
     struct arg_file  *ainfile = arg_filen(NULL,NULL,NULL,0,argc+2,  "input file or dir (any number allowed)");
@@ -343,7 +345,7 @@ int main(int argc, char** argv){
                         #ifdef PARALLEL
                         athreads,
                         #endif
-                        adryrun,aquiet,ahelp,end};
+                        adryrun,aquiet,alimit,ahelp,end};
     
     int nerrors;
     nerrors = arg_parse(argc,argv,argtable);
@@ -364,7 +366,10 @@ int main(int argc, char** argv){
         fprintf(stderr, "%s: please specify one or more input file or directory\n", argv[0]);
         return EXIT_FAILURE;
     }
-    
+
+    if(alimit->count){
+        maxplates=alimit->ival[0];
+    }
     if(aw->count){
         w=aw->ival[0];
     }
@@ -676,7 +681,10 @@ int main(int argc, char** argv){
         }
             
         plate += 1 + maxextraplates;
-    
+        if(maxplates>0 && plate >= maxplates){
+            if (!quiet) printf("Stopping at limit of plate %d\n", maxplates);
+            break;
+	}
         platecount=0;
     }    
     
