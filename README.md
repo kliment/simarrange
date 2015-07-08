@@ -117,7 +117,7 @@ Compiling
 
 simarrange depends on the following libraries:
 
-* admesh ~~(included in source)~~
+* admesh
 * utlist (included in source)
 * argtable2
 * opencv (libcv, libcxcore, libhighgui)
