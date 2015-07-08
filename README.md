@@ -125,10 +125,10 @@ simarrange depends on the following libraries:
 You can install the dependencies in a debian/ubuntu system with the following command:
 
 ```
-sudo apt-get install libhighgui-dev libcv-dev libargtable2-dev
+sudo apt-get install libhighgui-dev libcv-dev libargtable2-dev libadmesh-dev
 ```
 
-A build script called build.sh is included in the package. Run it to compile the program.
+A build script called Makefile is included in the package. Run it by command "make" to compile the program.
 
 
 Compiling on Mac OS
@@ -137,8 +137,9 @@ First, you will need to install Homebrew. Once you've done that, run
 
 ```
 brew tap homebrew/science
+brew install admesh
 brew install argtable
 brew install opencv
 ```
 
-and then run the build.sh script included with simarrange to compile the program.
+and then run the Makefile script included with simarrange to compile the program.
