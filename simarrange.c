@@ -568,6 +568,8 @@ int main(int argc, char** argv){
                 mkdir(aodir->sval[0],0777);
                 strcpy(imagefn,aodir->sval[0]);
                 strcat(imagefn,"/");
+                strcpy(outdir,aodir->sval[0]);
+                strcat(outdir,"/");
             }
  
             sprintf(tmpfn,"plate%02d.png",plate);
